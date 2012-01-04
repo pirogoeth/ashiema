@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import socket, select, ssl, logging, time
-import Queue, Logger, Serialise
+import Queue, Logger, Serialise, EventHandler
 from Queue import Queue, QueueError
 from Serialise import Serialise
+from EventHandler import EventHandler
 
 class Connection(object):
     """ Connection object to manage the connection 
@@ -16,6 +17,7 @@ class Connection(object):
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
         self._queue = Queue()
+        self._evh = EventHandler(self)
 
     """ information setup """
     def setup_info(self, nick, ident, real):
@@ -50,6 +52,7 @@ class Connection(object):
             self.log.warning("connection type not specified, assuming plain.")
         if password is not None:
             self._passrequired, self._password = (True, password)
+        self._evh.load_default_events()
         self.connection.connect((address, port))
         # we're connected!
         self._connected = True
@@ -69,7 +72,6 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        if self.debug: print data
         self.connection.send(data)
    
     def run(self):
@@ -86,8 +88,7 @@ class Connection(object):
             # first, sleep so we don't slurp up CPU time like no tomorrow
             time.sleep(0.005)
             # send user registration if we're not already registered and about 35 cycles have passed
-            if not self._registered and _cc is 10:
-                # remove this line
+            if not self._registered and _cc is 20:
                 if self._passrequired: 
                     self.send("PASS :%s" % (self._password))
                     self._password = None
@@ -98,7 +99,7 @@ class Connection(object):
             r, w, e = select.select([self.connection], [], [self.connection], .025)
             # now GO!
             if self.connection in r:
-                self.parse(self.connection.recv(31337))
+                self.parse(self.connection.recv(31440))
             # check if im in the errors
             if self.connection in e:
                 self._connected = False
@@ -107,8 +108,7 @@ class Connection(object):
             # process the data thats in the queue
             try:
                 [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
-            except (QueueError), e:
-                self.log.warning("{QueueError}: %s" % (e))
+            except (QueueError):
                 pass
             _cc += 1
         # what are we going to do after the loop closes?
@@ -126,4 +126,6 @@ class Connection(object):
         for line in data:
              # serialisation.
              line = Serialise(line)
-             line.print_raw()
+             if self.debug: line.print_raw()
+             # fire off all events that match the data.
+             self._evh.map_events(line)

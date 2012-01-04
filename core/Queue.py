@@ -32,7 +32,7 @@ class Queue(object):
     
     def count(self):
         """ returns the count of the queue """
-        return self._queue.count()
+        return len(self._queue)
     
     def clear(self):
         """ clears the entire queue out """
