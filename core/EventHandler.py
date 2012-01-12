@@ -5,9 +5,9 @@ from DefaultEvents import DefaultEventChainloader
 
 class EventHandler(object):
 
-    def __init__(self, server):
+    def __init__(self):
         self.events = []
-        self.server = server
+        self._d_loaded = False
 
     def __repr__(self):
         return "<EventHandler(%d events)>" % (len(self.events))
@@ -18,8 +18,15 @@ class EventHandler(object):
     def load_default_events(self):
         """ loads all events necessary to perform basic functions """
         
-        DefaultEventChainloader(self.server)
-        logging.getLogger('ashiema').info("Loaded %d default events." % (len(self.events)))
+        assert self._d_loaded is False, 'Default events have already been loaded.'
+
+        self._dec = DefaultEventChainloader(self)
+        logging.getLogger('ashiema').info("Loaded %d default events." % (self._dec.get_count()))
+
+    def get_default_events(self):
+        """ gets the default events for usage """
+        
+        return self._dec.get_events()
 
     def register(self, event):
         """ register an event in the handler """

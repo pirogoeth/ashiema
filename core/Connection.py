@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import socket, select, ssl, logging, time
-import Queue, Logger, Serialise, EventHandler
+import Queue, Logger, Serialise, EventHandler, BasicFunctions
+from BasicFunctions import Basic
 from Queue import Queue, QueueError
 from Serialise import Serialise
 from EventHandler import EventHandler
@@ -10,17 +11,20 @@ class Connection(object):
     """ Connection object to manage the connection 
         to the uplink """
     
-    def __init__(self):
+    def __init__(self, configuration):
         """ initialise connection object. """
     
+        self.configuration = configuration
+        self.__conn_hooks__ = configuration.get_value('main', 'onconnect').split(',')
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
+        self.basic = Basic(self)
         self._queue = Queue()
-        self._evh = EventHandler(self)
+        self._evh = EventHandler()
 
     """ information setup """
-    def setup_info(self, nick, ident, real):
+    def setup_info(self, nick = '', ident = '', real = ''):
         """ set up post connection info. """
         
         self.nick = nick
@@ -28,34 +32,40 @@ class Connection(object):
         self.real = real
         self._setupdone = True
     
-    def set_debug(self, debug):
-        """ set logger debugging. """
+        return self
+
+    def set_debug(self, debug = True):
+        """ set connection debug logging. """
         
         self.debug = debug
-        Logger.set_debug(debug)
+        
+        return self
     
     """ socket manipulation and management """
-    def connect(self, address, port, _ssl = None, password = None):
+    def connect(self, address = '', port = '', _ssl = None, password = None):
         """ complete the connection process. """
 
         assert self._setupdone is True, 'Information setup has not been completed.'
+        assert address and port, 'Parameters for connection have not been provided.'
         
         _ssl = True if _ssl is True or _ssl is "True" or _ssl is "true" else False
         if _ssl is True:
             self.connection = ssl.wrap_socket(self._socket)
             self.log.info("connection type: SSL")
         elif _ssl is False:
-            self.connection = self._socket.makefile()
+            self.connection = self._socket
             self.log.info("connection type: plain")
         else:
-            self.connection = self._socket.makefile()
+            self.connection = self._socket
             self.log.warning("connection type not specified, assuming plain.")
         if password is not None:
             self._passrequired, self._password = (True, password)
         self._evh.load_default_events()
-        self.connection.connect((address, port))
+        self.connection.connect((address, int(port)))
         # we're connected!
         self._connected = True
+        
+        return self
     
     def send(self, data):
         """ function to add a line to the sendqueue to be sent. """
@@ -125,7 +135,7 @@ class Connection(object):
         data = data.split('\r\n')
         for line in data:
              # serialisation.
-             line = Serialise(line)
+             line = Serialise(line, (self, self._evh))
              if self.debug: line.print_raw()
              # fire off all events that match the data.
              self._evh.map_events(line)

@@ -5,8 +5,10 @@ from structures import Channel, Type, User
 
 class Serialise(object):
     """ convert a line into a fielded object """
-    def __init__(self, data):
+    def __init__(self, data, (connection, eventhandler)):
         self._raw = data
+        self.connection = connection
+        self.eventhandler = eventhandler
         # this regular expression splits an IRC line up into four parts:
         # ORIGIN, TYPE, TARGET, MESSAGE
         regex = "^(?:\:([^\s]+)\s)?([A-Za-z0-9]+)\s(?:([^\s\:]+)\s)?(?:\:?(.*))?$"
@@ -25,7 +27,7 @@ class Serialise(object):
         except (AttributeError):
             pass
         try:
-            if logging.getLogger('ashiema').getEffectiveLevel() is 10:
+            if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
                 logging.getLogger('ashiema').debug("%s %s %s %s" % (str(self.origin), str(self.type), str(self.target), str(self.message)))
         except:
             [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(5).split('\n')]

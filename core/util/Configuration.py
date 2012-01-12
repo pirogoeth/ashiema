@@ -34,18 +34,18 @@ class Configuration(object):
             self.container.__delitem__(category)
         return self
     
-    def getCategory(self, category):
+    def get_category(self, category):
         """ return a category """
         return self.container[category] if self.container.__contains__(category) else None
     
-    def getValue(self, category, key):
+    def get_value(self, category, key):
         """ return [category:key] """
         value = self.container[category][key] if self.container[category].__contains__(key) else None
         if value is None: return value
         else:
             if value.startswith(':'):
                 """ this is a reference to another variable. """
-                return self.getValue(category, value[1:])
+                return self.get_value(category, value[1:])
             else: return value
     
     def unload(self):
@@ -77,7 +77,7 @@ class Configuration(object):
                 l = len(set[0])
                 # strip whitespace
                 set[0] = set[0].strip()
-                set[1] = set[1].lstrip()
+                set[1] = set[1].lstrip() if set[1] is not '' or ' ' else None
                 set.append(category)
                 self + set
                 continue

@@ -5,9 +5,9 @@
 class Event(object):
     """ this class is to be inherited and not directly instantiated and run. """
     
-    def __init__(self, instance):
-        self.connection = instance
-        self.eventhandler = instance._evh
+    def __init__(self, eventhandler):
+        self.eventhandler = eventhandler
+        self.calls = {}
 
     def __repr__(self):
         return "<Event>"
