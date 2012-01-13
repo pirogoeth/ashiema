@@ -19,8 +19,8 @@ def fork():
             os.chdir(os.getcwd())
             os.umask(0)
         else:
-            print 'forking as %d' % (pid)
-            print 'backgrounded from: %s' % (os.getcwd())
+            print "\x0aforking as %d" % (pid)
+            print 'backgrounded from: %s\x0a' % (os.getcwd())
             os._exit(0)
     else:
         os._exit(0)

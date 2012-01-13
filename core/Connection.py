@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import socket, select, ssl, logging, time
-import Queue, Logger, Serialise, EventHandler, BasicFunctions
+import Queue, Logger, Serialise, EventHandler, BasicFunctions, PluginLoader
+from PluginLoader import PluginLoader
 from BasicFunctions import Basic
 from Queue import Queue, QueueError
 from Serialise import Serialise
@@ -22,6 +23,7 @@ class Connection(object):
         self.basic = Basic(self)
         self._queue = Queue()
         self._evh = EventHandler()
+        self.pluginloader = PluginLoader((self, self._evh))
 
     """ information setup """
     def setup_info(self, nick = '', ident = '', real = ''):
@@ -41,6 +43,13 @@ class Connection(object):
         
         return self
     
+    """ flag management """
+    def shutdown(self):
+        """ change the self._connection flag to shut down the bot """
+        
+        self._connected = False
+        
+
     """ socket manipulation and management """
     def connect(self, address = '', port = '', _ssl = None, password = None):
         """ complete the connection process. """
@@ -109,7 +118,7 @@ class Connection(object):
             r, w, e = select.select([self.connection], [], [self.connection], .025)
             # now GO!
             if self.connection in r:
-                self.parse(self.connection.recv(31440))
+                self.parse(self.connection.recv(35000))
             # check if im in the errors
             if self.connection in e:
                 self._connected = False
@@ -136,6 +145,5 @@ class Connection(object):
         for line in data:
              # serialisation.
              line = Serialise(line, (self, self._evh))
-             if self.debug: line.print_raw()
              # fire off all events that match the data.
              self._evh.map_events(line)

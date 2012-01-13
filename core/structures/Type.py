@@ -14,4 +14,5 @@ class Type(object):
         return str(self.type)
         
     def to_i(self):
-        return int(self.type)
+        try: return int(self.type)
+        except (ValueError): return self.type

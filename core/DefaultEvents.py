@@ -12,7 +12,8 @@ class DefaultEventChainloader(object):
         self.defaults = {
             'RFCEvent': RFCEvent(eventhandler),
             'MessageEvent': MessageEvent(eventhandler),
-            'PingEvent': PingEvent(eventhandler)
+            'PingEvent': PingEvent(eventhandler),
+            'ErrorEvent': ErrorEvent(eventhandler)
         }
     
     def get_events(self):
@@ -21,7 +22,21 @@ class DefaultEventChainloader(object):
     def get_count(self):
         return len(self.defaults)
 
+class ErrorEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler)
+        self.__register__()
     
+    def match(self, data):
+        if str(data.type) == "ERROR" and data.message:
+            return True
+    
+    def run(self, data):
+        logging.getLogger('ashiema').critical('<- ERROR: %s' % (data.message))
+        # adjust the loop shutdown flag
+        data.connection.shutdown()
+
 class RFCEvent(Event):
 
     def __init__(self, eventhandler):
@@ -41,13 +56,20 @@ class RFCEvent(Event):
         elif data.type.to_i() == 002:
             # RPL_YOURHOST
             logging.getLogger('ashiema').info('<- %s' % (data.message))
+        elif data.type.to_i() == 433:
+            # ERR_NICKNAMEINUSE
+            logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
+            data.connection.shutdown()
         elif data.type.to_i() == 376:
             # RPL_ENDOFMOTD
-            if "onjoin" in data.connection.__conn_hooks__:
+            if "join" in data.connection.__conn_hooks__:
+                key = data.connection.configuration.get_value('main', 'chan_key')
                 data.connection.basic.join(
                     data.connection.configuration.get_value('main', 'channel'),
-                    data.connection.configuration.get_value('main', 'chan_key')
+                    key = key if key is not None else None
                 )
+            if "pluginload" in data.connection.__conn_hooks__:
+                data.connection.pluginloader.load()
         return
 
 class MessageEvent(Event):
@@ -58,13 +80,16 @@ class MessageEvent(Event):
         self.commands = ['NOTICE', 'PRIVMSG']    
         self.callbacks = []
        
-    def register(self):
+    def callback(self):
         """ registers a function to be run on the processed data. """
         def wrapper(function):
             def new(*args, **kw):
                 self.callbacks.append(function)
             return new
         return wrapper
+
+    def register(self, function):
+        self.callbacks.append(function)
 
     def deregister(self, function):
         self.callbacks.remove(function)

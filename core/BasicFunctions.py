@@ -11,6 +11,6 @@ class Basic(object):
         
         if key is None:
             message = 'JOIN %s' % (channel)
-        else: message = 'JOIN %s :%s'
+        else: message = 'JOIN %s :%s' % (channel, key)
         
         self.connection.send(message)
