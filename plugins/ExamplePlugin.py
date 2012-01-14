@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import core, logging
-from core import Plugin
+from core import CorePlugin
+from core.CorePlugin import Plugin
 
-class ExamplePlugin(Plugin.Plugin):
+class ExamplePlugin(Plugin):
     def __init__(self, connection, eventhandler):
         Plugin.__init__(self, connection, eventhandler)
         
@@ -14,7 +15,7 @@ class ExamplePlugin(Plugin.Plugin):
     def __deinit__(self):
         self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
         
-        logging.getLogger('ashiema').info('ExamplePlugin has been loaded.')
+        logging.getLogger('ashiema').info('ExamplePlugin has been unloaded.')
     
     def handler(self, data):
         logging.getLogger('ashiema').info('handling message: %s' % (data.message))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import socket, select, ssl, logging, time
+import socket, select, ssl, logging, time, signal
 import Queue, Logger, Serialise, EventHandler, BasicFunctions, PluginLoader
 from PluginLoader import PluginLoader
 from BasicFunctions import Basic
@@ -47,9 +47,11 @@ class Connection(object):
     def shutdown(self):
         """ change the self._connection flag to shut down the bot """
         
+        # unload all plugins
+        self.pluginloader.unload()
+        # change the value that controls the connection loop
         self._connected = False
         
-
     """ socket manipulation and management """
     def connect(self, address = '', port = '', _ssl = None, password = None):
         """ complete the connection process. """

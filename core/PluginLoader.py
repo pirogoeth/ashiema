@@ -42,12 +42,12 @@ class PluginLoader(object):
             try:
                 self.loaded.update(
                     {
-                        name : data['main']((self.connection, self.eventhandler))
+                        plugin : data['main'](self.connection, self.eventhandler)
                     }
                 )
             except:
                 self.log.info('an error has occurred in %s (%s):' % (plugin, data['version']))
-                [self.log.error(trace) for trace in traceback.format_exc(4)]
+                [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
         self.log.info('all plugins have been loaded.')
     
     def reload(self):

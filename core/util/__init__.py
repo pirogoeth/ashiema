@@ -10,7 +10,6 @@ def fork():
     if (pid == 0):
         os.setsid()
         # ignore SIGHUP
-        signal.signal(signal.SIGHUP, signal.SIG_IGN)
         try:
             pid = os.fork()
         except OSError, e:
