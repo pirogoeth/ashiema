@@ -24,5 +24,6 @@ class ExamplePlugin(Plugin):
 __data__ = {
     'name'     : 'ExamplePlugin',
     'version'  : '1.0',
+    'require'  : [],
     'main'     : ExamplePlugin
 }
