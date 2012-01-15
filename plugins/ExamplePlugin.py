@@ -18,7 +18,8 @@ class ExamplePlugin(Plugin):
         logging.getLogger('ashiema').info('ExamplePlugin has been unloaded.')
     
     def handler(self, data):
-        logging.getLogger('ashiema').info('handling message: %s' % (data.message))
+        if data.message == (0, 'testing'):
+            data.target.privmsg('this works bro.')
 
 __data__ = {
     'name'     : 'ExamplePlugin',

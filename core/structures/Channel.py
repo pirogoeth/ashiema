@@ -14,6 +14,7 @@ class Channel(object):
         message = "PRIVMSG %s :%s" % (self.name, data)
     
         self.connection.send(message)
+    privmsg = message
     
     def notice(self, data):
         message = "NOTICE %s :%s" % (self.name, data)

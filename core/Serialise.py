@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re, structures, logging, traceback
-from structures import Channel, Type, User
+from structures import Channel, Type, User, Message
 
 class Serialise(object):
     """ convert a line into a fielded object """
@@ -17,13 +17,14 @@ class Serialise(object):
         p = re.compile(regex, re.VERBOSE)
         try:
             self.origin, self.type, self.target, self.message = (None, None, None, None)
-            self._origin, self._type, self._target, self.message = p.match(data).groups()
+            self._origin, self._type, self._target, self._message = p.match(data).groups()
             # turn each serialisable field into an object
             self.origin = User.User(self.connection, self._origin) if self._origin is not None else None
             self.type = Type.Type(self._type) if self._type is not None else None
             if self._target.startswith('#', 0, 1) is True:
                 self.target = Channel.Channel(self.connection, self._target) if self._target is not None else None
             else: self.target = User.User(self.connection, self._target) if self._target is not None else None
+            self.message = Message.Message(self._message)
         except (AttributeError):
             pass
         try:

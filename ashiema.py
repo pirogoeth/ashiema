@@ -14,15 +14,17 @@ def main(conf_file):
         connection.set_debug(True)
     else: connection.set_debug(False)
     Logger.set_level(log_level)
+    # fork off
     fork()
+    core._connection = connection
     connection.setup_info(
-        nick   = _config.get_value('main', 'nick'),
-        ident  = _config.get_value('main', 'ident'),
-        real   = _config.get_value('main', 'real')
+        nick     = _config.get_value('main', 'nick'),
+        ident    = _config.get_value('main', 'ident'),
+        real     = _config.get_value('main', 'real')
     ).connect(
-        address =  _config.get_value('main', 'address'),
-        port =     _config.get_value('main', 'port'),
-        _ssl =     _config.get_value('main', 'ssl'),
+        address  = _config.get_value('main', 'address'),
+        port     = _config.get_value('main', 'port'),
+        _ssl     = _config.get_value('main', 'ssl'),
         password = _config.get_value('main', 'password')
     ).run()
 

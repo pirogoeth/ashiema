@@ -13,6 +13,7 @@ class Connection(object):
         to the uplink """
     
     def __init__(self, configuration):
+        global connection
         """ initialise connection object. """
     
         self.configuration = configuration

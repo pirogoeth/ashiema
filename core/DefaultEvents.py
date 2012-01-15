@@ -12,6 +12,7 @@ class DefaultEventChainloader(object):
         self.defaults = {
             'RFCEvent': RFCEvent(eventhandler),
             'MessageEvent': MessageEvent(eventhandler),
+            'PMEvent': PMEvent(eventhandler),
             'PingEvent': PingEvent(eventhandler),
             'ErrorEvent': ErrorEvent(eventhandler)
         }
@@ -36,6 +37,40 @@ class ErrorEvent(Event):
         logging.getLogger('ashiema').critical('<- ERROR: %s' % (data.message))
         # adjust the loop shutdown flag
         data.connection.shutdown()
+
+class PMEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler)
+        self.__register__()
+        self.commands = ['PRIVMSG']
+        self.callbacks = []
+       
+    def callback(self):
+        """ registers a function to be run on the processed data. """
+        def wrapper(function):
+            def new(*args, **kw):
+                self.callbacks.append(function)
+            return new
+        return wrapper
+
+    def register(self, function):
+        self.callbacks.append(function)
+
+    def deregister(self, function):
+        self.callbacks.remove(function)
+
+    def match(self, data):
+        if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
+            return True
+
+    def run(self, data):
+        print 'PMEvent fired'
+        if self.callbacks is not None:
+            for function in self.callbacks:
+                thread = get_thread(function, data)
+                thread.setDaemon(True)
+                thread.start()
 
 class RFCEvent(Event):
 
@@ -77,7 +112,7 @@ class MessageEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
-        self.commands = ['NOTICE', 'PRIVMSG']    
+        self.commands = ['NOTICE', 'PRIVMSG']
         self.callbacks = []
        
     def callback(self):
