@@ -30,11 +30,11 @@ class ErrorEvent(Event):
         self.__register__()
     
     def match(self, data):
-        if str(data.type) == "ERROR" and data.message:
+        if (str(data.type) == "ERROR" or str(data.type) == "KILL") and data.message:
             return True
     
     def run(self, data):
-        logging.getLogger('ashiema').critical('<- ERROR: %s' % (data.message))
+        logging.getLogger('ashiema').critical('<- %s: %s' % (str(data.type), data.message))
         # adjust the loop shutdown flag
         data.connection.shutdown()
 
@@ -65,7 +65,6 @@ class PMEvent(Event):
             return True
 
     def run(self, data):
-        print 'PMEvent fired'
         if self.callbacks is not None:
             for function in self.callbacks:
                 thread = get_thread(function, data)

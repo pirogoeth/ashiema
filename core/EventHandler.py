@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import DefaultEvents, logging
+import DefaultEvents, logging, traceback
 from DefaultEvents import DefaultEventChainloader
 
 class EventHandler(object):
@@ -57,4 +57,7 @@ class EventHandler(object):
         """ fire all mapped events with provided data """
 
         for event in event_map:
-            event.run(data)
+            try:
+                event.run(data)
+            except Exception:
+                [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]

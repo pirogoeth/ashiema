@@ -34,6 +34,10 @@ class Configuration(object):
             self.container.__delitem__(category)
         return self
     
+    def has_category(self, category):
+        """ return if x has a category """
+        return category in self.container
+
     def get_category(self, category):
         """ return a category """
         return self.container[category] if self.container.__contains__(category) else None
