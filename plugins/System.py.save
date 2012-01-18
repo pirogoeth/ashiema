@@ -9,24 +9,25 @@ class System(Plugin):
         Plugin.__init__(self, connection, eventhandler)
         
         self.eventhandler.get_default_events()['PMEvent'].register(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self.load_identification)
         
+        self.identification = get_connection().pluginloader.get_plugin('IdentificationPlugin')
+    
     def __deinit__(self):
         self.eventhandler.get_default_events()['PMEvent'].deregister(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].deregister(self.load_identification)
     
-    def load_identification(self):
-        self.identification = get_connection().pluginloader.get_plugin('IdentificationPlugin')
-
     def handler(self, data):
+        assert self.iden
+    
         if data.message == (0, 'shutdown'):
-            assert self.identification.require_level(data, 2)
             data.origin.message('shutting down.')
             get_connection().shutdown()
+        elif data.message == (0, 'reload'):
+            get_connection().pluginloader.reload()
+            data.origin.message('plugin reload completed!')
         elif data.message == (0, 'rehash'):
-            assert self.identification.require_level(data, 2)
             get_connection().configuration.unload()
             get_connection().configuration.load()
+            get_connection().pluginloader.reload()
             data.origin.message('rehash completed!')
         
 __data__ = {
