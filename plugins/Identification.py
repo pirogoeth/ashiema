@@ -26,7 +26,7 @@ class IdentificationPlugin(Plugin):
         else:
             assert False, 'Identification shelf configuration not available.'
         try:
-            self.shelf = shelve.open(shelf_loc, writeback = True)
+            self.shelf = shelve.open(shelf_loc, protocol = 2, writeback = True)
         except: self.shelf = None
         self._opened = True
     
@@ -41,29 +41,24 @@ class IdentificationPlugin(Plugin):
         
         return username in self.shelf
     
-    def require_level(level = 0):
+    def __check_login__(self, origin):
+        return origin in self.logins
+    
+    def require_level(self, data, level):
         """ permission level filter """
-        def wrapper(function):
-            def new(*args, **kw):
-                if level not in xrange(0, 4):
-                    logging.getLogger('ashiema').error('invalid permission level range for %s' % (function))
-                    return False
-                try: data = args[1]
-                except:
-                    logging.getLogger('ashiema').error('could not get Serialise instance')
-                    return False
-                if not self.__check_user__(str(data.origin)):
-                    data.origin.message('please log in to use this function.')
-                    return False
-                relative = self.logins[str(data.origin)]
-                level_r = self.shelf[relative]['level']
-                if level_r < level:
-                    data.origin.message('you do not have the permissions required to use this command.')
-                    return False
-                elif level_r >= level:
-                    return function(*args, **kw)
-            return new
-        return wrap
+        if level not in xrange(0, 4):
+            logging.getLogger('ashiema').error('invalid permission level range.')
+            return False
+        if not self.__check_login__(str(data.origin)):
+            data.origin.message('please log in to use this function.')
+            return False
+        relative = self.logins[str(data.origin)]
+        level_r = self.shelf[relative]['level']
+        if level_r < level:
+            data.origin.message('you do not have the permissions required to use this command.')
+            return False
+        elif level_r >= level:
+            return True
     
     def handler(self, data):
         if data.message == (0, 'login'):
@@ -82,7 +77,7 @@ class IdentificationPlugin(Plugin):
                         data.origin.to_s(): username
                     }
                 )
-                data.origin.message('logged in as %s' % (username))
+                data.origin.message('logged in as %s.' % (username))
                 return
             elif md5(password) != self.shelf[username]['password']:
                 data.origin.message('invalid password.')
@@ -97,11 +92,11 @@ class IdentificationPlugin(Plugin):
             if len(password) >= 8:
                 self.shelf.update(
                     {
-                        username: 
-                            {
+                        username:
+                        {
                                 'password' : md5(password),
                                 'level'    : 0
-                            }
+                        }
                     }
                 )
                 data.origin.message('registered as %s.' % (username))
@@ -131,7 +126,7 @@ class IdentificationPlugin(Plugin):
                             'level': level
                         }
                     )
-                    data.origin.message('set permission level %s to %d' % (username, level))
+                    data.origin.message('set permission level %s to %d.' % (username, level))
                     self.shelf.sync()
                     return
                 else:

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import Event, logging, time, threading
+import Event, logging, time, threading, core
 from Event import Event
+from core import get_connection
 
 get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
 
@@ -14,7 +15,8 @@ class DefaultEventChainloader(object):
             'MessageEvent': MessageEvent(eventhandler),
             'PMEvent': PMEvent(eventhandler),
             'PingEvent': PingEvent(eventhandler),
-            'ErrorEvent': ErrorEvent(eventhandler)
+            'ErrorEvent': ErrorEvent(eventhandler),
+            'PluginsLoadedEvent': PluginsLoadedEvent(eventhandler)
         }
     
     def get_events(self):
@@ -22,6 +24,40 @@ class DefaultEventChainloader(object):
     
     def get_count(self):
         return len(self.defaults)
+
+class PluginsLoadedEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler)
+        self.__register__()
+        self.callbacks = {}
+    
+    def register(self, function):
+        self.callbacks.update(
+        {
+            function.__name__ : function
+        })
+    
+    def deregister(self, function):
+        del self.callbacks[function.__name__]
+        
+    def callback(self):
+        """ registers a function to be run on the processed data. """
+        def wrapper(function):
+            def new(*args, **kw):
+                self.callbacks.update(
+                {
+                    function.__name__ : function
+                })
+            return new
+        return wrapper
+
+    def match(self, data = None):
+        return get_connection().pluginloader._loaded
+    
+    def run(self, data = None):
+        for name, eventhandler in self.callbacks.iteritems():
+            eventhandler()
 
 class ErrorEvent(Event):
 

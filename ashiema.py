@@ -9,6 +9,7 @@ def main(conf_file):
     _config.load(conf_file)
     connection = Connection.Connection(_config)
     Logger.setup_logger()
+    core._connection = connection
     log_level = _config.get_value('logging', 'level')
     if _config.get_value('main', 'debug') == 'True' or _config.get_value('main', 'debug') == 'true':
         connection.set_debug(True)
@@ -16,7 +17,6 @@ def main(conf_file):
     Logger.set_level(log_level)
     # fork off
     fork()
-    core._connection = connection
     connection.setup_info(
         nick     = _config.get_value('main', 'nick'),
         ident    = _config.get_value('main', 'ident'),

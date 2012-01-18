@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import imp, util, os, logging, traceback
+import imp, util, os, logging, traceback, core
 from imp import load_source
+from core import get_connection
 
 class PluginLoader(object):
     """ this manages loading and unloading of all plugins. """
@@ -15,7 +16,25 @@ class PluginLoader(object):
         self.eventhandler = eventhandler
         # set up logging
         self.log = logging.getLogger('ashiema')
+        # assertion
+        self._loaded = False
     
+    def __call__(self):
+        return self.loaded
+    
+    def __getitem__(self, plugin):
+        return self()[plugin]
+        
+    """ support functions """
+    def get_plugin(self, plugin):
+        assert self._loaded is True, 'Plugins have not yet been loaded.'
+        
+        try: return self.loaded[plugin]
+        except:
+            [self.log.error(trace) for trace in traceback.format_exc(6).split('\n')]
+            return None
+
+    """ dependency support """
     def __depcheck__(self, container):
         try:
             for plugin, data in container.iteritems():
@@ -28,6 +47,7 @@ class PluginLoader(object):
         except (RuntimeError): return {}
         return container
     
+    """ load, reload, unload """
     def load(self):
         # this loads all plugins
         plugin_dir = os.getcwd() + '/plugins/'
@@ -53,6 +73,9 @@ class PluginLoader(object):
             )
         # check requires
         self.container = self.__depcheck__(self.container)    
+        """ setting the loading variable here makes dependencie requires work correctly, and at this point, all plugins
+            are effectively loaded, but they are just not yet initialised. """
+        self._loaded = True
         # initialise plugins
         if self.container:
             for plugin, data in self.container.iteritems():
@@ -66,12 +89,17 @@ class PluginLoader(object):
                     self.log.info('an error has occurred in %s (%s):' % (plugin, data['version']))
                     [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
             self.log.info('all plugins have been loaded.')
+            # run the PluginsLoadedEvent
+            get_connection()._evh.get_default_events()['PluginsLoadedEvent'].run()
         elif not self.container: self.log.info('no plugins to load.')
     
     def reload(self):
+        assert self._loaded is True, 'Plugins have not yet been loaded.'
+        
         # this reloads all plugins and looks for new ones.
         for name, plugin in self.loaded.iteritems():
             plugin.__deinit__()
+        self._loaded = False
         # clear the status containers
         self.loaded.clear()
         self.container.clear()
@@ -79,6 +107,8 @@ class PluginLoader(object):
         self.load()
     
     def unload(self):
+        assert self._loaded is True, 'Plugins have not yet been loaded.'
+        
         # this unloads all currently loaded plugins (eg., for shutdown)
         for name, plugin in self.loaded.iteritems():
             plugin.__deinit__()
