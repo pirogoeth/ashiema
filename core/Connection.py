@@ -2,6 +2,9 @@
 
 import socket, select, ssl, logging, time, signal
 import Queue, Logger, Serialise, EventHandler, BasicFunctions, PluginLoader
+from util import apscheduler
+from util.apscheduler import scheduler
+from util.apscheduler.scheduler import Scheduler
 from PluginLoader import PluginLoader
 from BasicFunctions import Basic
 from Queue import Queue, QueueError
@@ -25,6 +28,8 @@ class Connection(object):
         self._queue = Queue()
         self._evh = EventHandler()
         self.pluginloader = PluginLoader((self, self._evh))
+        self.scheduler = Scheduler()
+        self.tasks = {}
 
     """ information setup """
     def setup_info(self, nick = '', ident = '', real = ''):
@@ -50,6 +55,11 @@ class Connection(object):
         
         # unload all plugins
         self.pluginloader.unload()
+        # shut down all leftover apscheduler tasks
+        for task in self.tasks:
+            self.scheduler.unschedule_job(task)
+        # shut down the scheduler
+        self.scheduler.shutdown()
         # change the value that controls the connection loop
         self._connected = False
         
@@ -104,6 +114,8 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
+        # start the scheduler
+        self.scheduler.start()
         # cycle counter
         _cc = 1
         while self._connected is True:
