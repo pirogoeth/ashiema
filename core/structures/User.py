@@ -18,10 +18,12 @@ class User(object):
     def __eq__(self, name):
         return str(self.nick) == name     
     
-    def message(self, data):
-        message = "PRIVMSG %s :%s" % (self.nick, data)
-        
-        self.connection.send(message)
+    def message(self, *data):
+        for slice in data:
+            message = "PRIVMSG %s :%s" % (self.nick, slice)
+            self.connection.send(message)
+    
+    privmsg = message
     
     def notice(self, data):
         message = "NOTICE %s :%s" % (self.nick, data)

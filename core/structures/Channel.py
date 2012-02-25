@@ -10,10 +10,11 @@ class Channel(object):
     def __repr__(self):
         return str(self.name)
     
-    def message(self, data):
-        message = "PRIVMSG %s :%s" % (self.name, data)
-    
-        self.connection.send(message)
+    def message(self, *data):
+        for slice in data:
+            message = "PRIVMSG %s :%s" % (self.name, slice)
+            self.connection.send(message)
+
     privmsg = message
     
     def notice(self, data):

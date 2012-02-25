@@ -82,6 +82,13 @@ class IdentificationPlugin(Plugin):
             elif md5(password) != self.shelf[username]['password']:
                 data.origin.message('invalid password.')
                 return
+        elif data.message == (0, 'logout'):
+            if not self.__check_login__(data.origin.to_s()):
+                data.origin.message('you are not logged in.')
+                return
+            del self.logins[data.origin.to_s()]
+            data.origin.message('you have been logged out.')
+            return
         elif data.message == (0, 'register'):
             try:
                 username = data.message[1]

@@ -57,7 +57,7 @@ class WolframAlpha(Plugin):
             try:
                 query = " ".join(data.message[1:])
             except (IndexError):
-                data.target.message("please provide a query to search.")
+                data.target.message("%s[Wolfram|Alpha]: %sPlease provide a query to search." % (e.LIGHT_BLUE, e.BOLD))
                 return
             self.beginWolframQuery(data, query)
         elif data.message == (0, "@wa-cache") or data.message == (0, "wolfram-cache"):
@@ -67,59 +67,78 @@ class WolframAlpha(Plugin):
         elif data.message == (0, "@wa-cache-clear") or data.message == (0, "wolfram-clearcache"):
             assert self.identification.require_level(data, 2)
             self.clean_cache()
-            data.origin.message("%s[Wolfram|Cache]: cache forcibly cleared." % (e.LIGHT_BLUE))
+            data.target.message("%s[Wolfram|Cache]: cache forcibly cleared." % (e.LIGHT_BLUE))
             return
    
-    def search(self, query, format = ('plaintext',)):
+    def search(self, query, format = ('plaintext',), _referrer = None):
        
         return self.parseWolframResponse(urlopen(
             "http://api.wolframalpha.com/v2/query?%s" % (
                 urlencode(
                     {
                         "appid"  : self.appID,
-                        "query"  : query,
+                        "input"  : query,
                         "format" : ",".join(format)
                     }
                 )
             )
-        ))
+        ), _referrer = _referrer)
        
-    def parseWolframResponse(self, response, redirected = False, results = None):
+    def parseWolframResponse(self, response, redirected = False, results = None, _referrer = None):
        
         results = results if results is not None else []
         tree = xtree.fromstring(response.read())
-        return False, tree.items()
-        recalculate = tree.get('recalculate')
+        recalculate = tree.get('recalculate') if tree.get('recalculate') else False
         success = tree.get('success')
+        if _referrer is not None:
+            _referrer.target.message(
+                "success ==> %s%s%s" % (e.BOLD, success, e.NL),
+                "recalculating? ==> %s%s%s" % (e.BOLD, str(recalculate), e.NL),
+                "pods ==> %s%s%s" % (e.BOLD, tree.findall('pod'), e.NL)
+            )
         if success == 'true':
             for pod in tree.findall('pod'):
                 title = pod.get('title')
                 plaintext = pod.find('subpod/plaintext')
                 if plaintext is not None and plaintext.text:
                     results.append((title, plaintext.text.split('\n')))
-            if recalculate:
+            if recalculate is not False:
                 if not redirected:
-                    self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results)
+                    if _referrer is not None: _referrer.target.message("return status ==> r")
+                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results, _referrer = _referrer)
                 elif results:
+                    if _referrer is not None: _referrer.target.message("return status ==> a")
                     return True, results
                 else:
+                    if _referrer is not None: _referrer.target.message("return status ==> b")
                     return False, "Too many redirects."
-            elif success == "true":
+            elif success == 'true' and recalculate is False and results is not None:
+                if _referrer is not None: _referrer.target.message("return status ==> c")
                 return True, results
         else:
+            if _referrer is not None: _referrer.target.message("return status ==> d")
             return False, [tip.get("text") for tip in tree.findall("tips/tip")]
             
-    def beginWolframQuery(self, data, query):
-    
+    def beginWolframQuery(self, data, query):    
         data.target.privmsg("%s[Wolfram|Alpha]%s: %sSearching..." % (e.BOLD, e.BOLD, e.LIGHT_BLUE))
         try:
+            if query.split()[0] == ":d:":
+                assert self.identification.require_level(data, 2), data.target.message("%s[Wolfram|Alpha]%s: %sSearch cancelled." % (e.BOLD, e.BOLD, e.LIGHT_BLUE))
+                _referrer = data
+                query = " ".join(query.split()[1:])
+                data.target.message("%s[Wolfram|Alpha]%s: %sDebug mode is %sENABLED%s." % (e.BOLD, e.BOLD, e.LIGHT_BLUE, e.BOLD, e.BOLD))
+            else: _referrer = None
             if query in self.cache:
-                result = self.cache[query]
+                response = self.cache[query]
                 have_results = True
             elif query not in self.cache:
-                result = self.search(query)
-                data.target.privmsg("{%s} :: %s, %s" % (query, result[0], result[1]))
+                result = self.search(query, _referrer = _referrer)
                 have_results, response = result
+                if _referrer is not None:
+                    data.target.message(
+                        "has results? ==> %s%s%s" % (e.BOLD, have_results, e.NL),
+                        "response ==> %s%s%s" % (e.BOLD, response[0:20] + "...", e.NL)
+                    )
                 self.cache.update({
                     query: response
                 })
@@ -143,12 +162,8 @@ class WolframAlpha(Plugin):
         except: raise
 
 __data__ = {
-    'name'    : 
-        "Wolfram|Alpha",
-    'version' : 
-        "1.0",
-    'require' : 
-        ["IdentificationPlugin"],
-    'main'    :
-        WolframAlpha
+    'name'    : "Wolfram|Alpha",
+    'version' : "1.0",
+    'require' : ["IdentificationPlugin"],
+    'main'    : WolframAlpha
 }

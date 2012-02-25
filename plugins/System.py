@@ -23,10 +23,17 @@ class System(Plugin):
             assert self.identification.require_level(data, 2)
             data.origin.message('shutting down.')
             get_connection().shutdown()
+        elif data.message == (0, 'reload'):
+            assert self.identification.require_level(data, 2)
+            try:
+                get_connection().pluginloader.reload()
+            except Exception, e:
+                data.origin.message("Exception %s while reloading plugins." % (e))
+                return
+            data.origin.message('plugins reloaded')
         elif data.message == (0, 'rehash'):
             assert self.identification.require_level(data, 2)
-            get_connection().configuration.unload()
-            get_connection().configuration.load()
+            get_connection().configuration.reload()
             data.origin.message('rehash completed!')
         
 __data__ = {

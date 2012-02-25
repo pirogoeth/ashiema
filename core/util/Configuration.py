@@ -56,10 +56,15 @@ class Configuration(object):
         """ unload an entire configuration """
         self.container.clear()
         self.loaded = False
-        
+    
+    def reload(self):
+        """ reload the configuration from the initially specified file """
+        self.unload()
+        self.load(self._filename)
+    
     def load(self, file):
         """ load a file and read in the categories and variables """
-        self.file = file
+        self._filename = file
         try: f = open(file, 'r')
         except IOError, e:
             return

@@ -40,7 +40,7 @@ class PluginLoader(object):
             for plugin, data in container.iteritems():
                 for require in data['require']:
                     if require not in container:
-                        self.log.warning('plugin [%s] will not be loaded due to dependency problems. missing dep [%s]')
+                        self.log.warning('plugin [%s] will not be loaded due to dependency problems. missing dep [%s]' % (plugin, require))
                         _c = container
                         del _c[plugin]
                         self.__depcheck__(_c)
@@ -73,7 +73,7 @@ class PluginLoader(object):
             )
         # check requires
         self.container = self.__depcheck__(self.container)    
-        """ setting the loading variable here makes dependencie requires work correctly, and at this point, all plugins
+        """ setting the loading variable here makes dependency requires work correctly, and at this point, all plugins
             are effectively loaded, but they are just not yet initialised. """
         self._loaded = True
         # initialise plugins
@@ -96,13 +96,10 @@ class PluginLoader(object):
     def reload(self):
         assert self._loaded is True, 'Plugins have not yet been loaded.'
         
-        # this reloads all plugins and looks for new ones.
-        for name, plugin in self.loaded.iteritems():
-            plugin.__deinit__()
-        self._loaded = False
-        # clear the status containers
-        self.loaded.clear()
-        self.container.clear()
+        # run the unload method
+        self.unload()
+        # recreate the containers
+        self.loaded, self.container = ({}, {})
         # reload all plugins
         self.load()
     
