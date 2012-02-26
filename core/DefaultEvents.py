@@ -5,18 +5,22 @@ from Event import Event
 from core import get_connection
 
 get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
+get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
 
 class DefaultEventChainloader(object):
     """ this chainloads all default events """
     
     def __init__(self, eventhandler):
         self.defaults = {
-            'RFCEvent': RFCEvent(eventhandler),
-            'MessageEvent': MessageEvent(eventhandler),
-            'PMEvent': PMEvent(eventhandler),
+            'RFCEvent': RFCEvent(eventhandler), # mainly server triggered events
             'PingEvent': PingEvent(eventhandler),
             'ErrorEvent': ErrorEvent(eventhandler),
-            'PluginsLoadedEvent': PluginsLoadedEvent(eventhandler)
+            'MessageEvent': MessageEvent(eventhandler), # user triggered events
+            'PMEvent': PMEvent(eventhandler),
+            'JoinEvent': UserJoinedEvent(eventhandler),
+            'PartEvent': UserPartedEvent(eventhandler),
+            'QuitEvent': UserQuitEvent(eventhandler),
+            'PluginsLoadedEvent': PluginsLoadedEvent(eventhandler) # system triggered events
         }
     
     def get_events(self):
@@ -24,6 +28,38 @@ class DefaultEventChainloader(object):
     
     def get_count(self):
         return len(self.defaults)
+
+class BasicUserEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler)
+        self.__register__()
+        self.callbacks = []
+       
+    def callback(self):
+        """ registers a function to be run on the processed data. """
+        def wrapper(function):
+            def new(*args, **kw):
+                self.callbacks.append(function)
+            return new
+        return wrapper
+
+    def register(self, function):
+        self.callbacks.append(function)
+
+    def deregister(self, function):
+        self.callbacks.remove(function)
+    
+    def match(self, data):
+        pass
+    
+    def run(self, data):
+        if self.callbacks is not None:
+            for function in self.callbacks:
+                thread = get_thread(function, data)
+                thread.setDaemon(True)
+                thread.start()
+
 
 class PluginsLoadedEvent(Event):
 
@@ -35,11 +71,11 @@ class PluginsLoadedEvent(Event):
     def register(self, function):
         self.callbacks.update(
         {
-            function.__name__ : function
+            get_method_ident(function) : function
         })
     
     def deregister(self, function):
-        del self.callbacks[function.__name__]
+        del self.callbacks[get_method_ident(function)]
         
     def callback(self):
         """ registers a function to be run on the processed data. """
@@ -47,7 +83,7 @@ class PluginsLoadedEvent(Event):
             def new(*args, **kw):
                 self.callbacks.update(
                 {
-                    function.__name__ : function
+                    get_method_ident(function) : function
                 })
             return new
         return wrapper
@@ -174,6 +210,33 @@ class MessageEvent(Event):
                 thread = get_thread(function, data)
                 thread.setDaemon(True)
                 thread.start()
+
+class UserJoinedEvent(BasicUserEvent):
+
+    def __init__(self, eventhandler):
+        BasicUserEvent.__init__(self, eventhandler)
+    
+    def match(self, data):
+        if str(data.type) == 'JOIN':
+            return True
+                
+class UserPartedEvent(BasicUserEvent):
+
+    def __init__(self, eventhandler):
+        BasicUserEvent.__init__(self, eventhandler)
+    
+    def match(self, data):
+        if str(data.type) == 'PART':
+            return True
+    
+class UserQuitEvent(BasicUserEvent):
+
+    def __init__(self, eventhandler):
+        BasicUserEvent.__init__(self, eventhandler)
+       
+    def match(self, data):
+        if str(data.type) == 'QUIT':
+            return True
 
 class PingEvent(Event):
    
