@@ -137,7 +137,7 @@ class WolframAlpha(Plugin):
                 if _referrer is not None:
                     data.target.message(
                         "has results? ==> %s%s%s" % (e.BOLD, have_results, e.NL),
-                        "response ==> %s%s%s" % (e.BOLD, response[0:20] + "...", e.NL)
+                        "response ==> %s%s%s" % (e.BOLD, str(response)[0:20] + "...", e.NL)
                     )
                 self.cache.update({
                     query: response

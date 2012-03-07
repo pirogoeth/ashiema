@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, core, sys, logging
+import os, core, sys, logging, traceback
 from core import get_connection, md5, CorePlugin
 from core.CorePlugin import Plugin
 
@@ -29,6 +29,7 @@ class System(Plugin):
                 get_connection().pluginloader.reload()
             except Exception, e:
                 data.origin.message("Exception %s while reloading plugins." % (e))
+                [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
                 return
             data.origin.message('plugins reloaded')
         elif data.message == (0, 'rehash'):
