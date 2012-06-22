@@ -148,6 +148,7 @@ class RFCEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
+        self.data = 000
     
     def match(self, data):
         try:
@@ -156,6 +157,7 @@ class RFCEvent(Event):
         except (ValueError): return False
 
     def run(self, data):
+        self.data = data.type.to_i()
         if data.type.to_i() == 001:
             # RPL_WELCOME
             logging.getLogger('ashiema').info('<- welcome received: %s' % (data.message))

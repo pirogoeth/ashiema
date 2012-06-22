@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, logging, core, sys, traceback, re
+import os, logging, core, sys, traceback, re, json
 from core import CorePlugin, Event, get_connection, util
 from core.util import Escapes as e
 from core.CorePlugin import Plugin
@@ -78,22 +78,21 @@ class UrbanDictionary(Plugin):
                 }
             )
         ))
-        _data = u'%s' % (_data.read())
-        logging.getLogger("ashiema").error("%s" % _data)
-        content = re.compile(r"<div><b>(.*?)<\/b><\/div><div>(.*?)<\/div>")
+        _data = u'%s' % (_data.read().replace('\n', '\\n'))
+        _data = json.loads(_data)['string']
+        content = re.compile(r"<div>(.+?)<\/div><div>(.+?)<\/div>")
         escapes = re.compile(r"[\r\n\t]")
+        escaped = escapes.sub('', _data.replace("<br/>", '').replace('&quot;', '"').strip())
         try:
-            result = content.match(
-                escapes.sub(
-                    '', _data.replace("<br/>", " ").replace('&quot;', '"').replace('<b>', '\x02').replace('</b>', '\x02').strip()
-                )
-            ).groups()
-            logging.getLogger("ashiema").error("%s" % result)
+            _result = content.match(escaped).groups()
         except: 
             [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
             result = None
 
-        logging.getLogger("ashiema").error("%s" % result)
+        result = [slice for slice in _result]
+        result[0] = result[0].replace("<b>", '').replace("</b>", '').strip()
+        result[1] = result[1].lstrip()
+        result[1] = result[1].replace("<b>", e.BOLD).replace("</b>", e.BOLD)
 
         return result if result is not None else None
     
