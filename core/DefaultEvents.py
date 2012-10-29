@@ -15,6 +15,7 @@ class DefaultEventChainloader(object):
             'RFCEvent': RFCEvent(eventhandler), # mainly server triggered events
             'PingEvent': PingEvent(eventhandler),
             'ErrorEvent': ErrorEvent(eventhandler),
+            'ModeChangeEvent': ModeChangeEvent(eventhandler),
             'MessageEvent': MessageEvent(eventhandler), # user triggered events
             'PMEvent': PMEvent(eventhandler),
             'JoinEvent': UserJoinedEvent(eventhandler),
@@ -34,28 +35,28 @@ class BasicUserEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
-        self.callbacks = []
+        self.callbacks = {}
        
     def callback(self):
         """ registers a function to be run on the processed data. """
         def wrapper(function):
             def new(*args, **kw):
-                self.callbacks.append(function)
+                self.callbacks[get_method_ident(function)] = function
             return new
         return wrapper
 
     def register(self, function):
-        self.callbacks.append(function)
+        self.callbacks[get_method_ident(function)] = function
 
     def deregister(self, function):
-        self.callbacks.remove(function)
+        del self.callbacks[get_method_ident(function)]
     
     def match(self, data):
         pass
     
     def run(self, data):
         if self.callbacks is not None:
-            for function in self.callbacks:
+            for function in self.callbacks.values():
                 thread = get_thread(function, data)
                 thread.setDaemon(True)
                 thread.start()
@@ -69,10 +70,7 @@ class PluginsLoadedEvent(Event):
         self.callbacks = {}
     
     def register(self, function):
-        self.callbacks.update(
-        {
-            get_method_ident(function) : function
-        })
+        self.callbacks[get_method_ident(function)] = function
     
     def deregister(self, function):
         del self.callbacks[get_method_ident(function)]
@@ -81,10 +79,7 @@ class PluginsLoadedEvent(Event):
         """ registers a function to be run on the processed data. """
         def wrapper(function):
             def new(*args, **kw):
-                self.callbacks.update(
-                {
-                    get_method_ident(function) : function
-                })
+                self.callbacks[get_method_ident(function)] = function
             return new
         return wrapper
 
@@ -92,8 +87,42 @@ class PluginsLoadedEvent(Event):
         return get_connection().pluginloader._loaded
     
     def run(self, data = None):
-        for name, eventhandler in self.callbacks.iteritems():
-            eventhandler()
+        for callback in self.callbacks.values():
+            callback()
+
+class ModeChangeEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler)
+        self.__register__()
+        self.commands = ['MODE', 'OMODE', 'UMODE']
+        self.callbacks = {}
+    
+    def register(self, function):
+        self.callbacks[get_method_ident(function)] = function
+    
+    def deregister(self, function):
+        del self.callbacks[get_method_ident(function)]
+    
+    def callback(self):
+        """ registers a function to be run on the processed data. """
+        def wrapper(function):
+            def new(*args, **kw):
+                self.callbacks[get_method_ident(function)] = function
+            return new
+        return wrapper
+    
+    def match(self, data = None):
+        if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
+            return True
+        return False
+    
+    def run(self, data):
+        if self.callbacks is not None:
+            for function in self.callbacks.values():
+                thread = get_thread(function, data)
+                thread.setDaemon(True)
+                thread.start()
 
 class ErrorEvent(Event):
 
@@ -116,21 +145,21 @@ class PMEvent(Event):
         Event.__init__(self, eventhandler)
         self.__register__()
         self.commands = ['PRIVMSG']
-        self.callbacks = []
+        self.callbacks = {}
        
     def callback(self):
         """ registers a function to be run on the processed data. """
         def wrapper(function):
             def new(*args, **kw):
-                self.callbacks.append(function)
+                self.callbacks[get_method_ident(function)] = function
             return new
         return wrapper
 
     def register(self, function):
-        self.callbacks.append(function)
+        self.callbacks[get_method_ident(function)] = function
 
     def deregister(self, function):
-        self.callbacks.remove(function)
+        del self.callbacks[get_method_ident(function)]
 
     def match(self, data):
         if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
@@ -138,7 +167,7 @@ class PMEvent(Event):
 
     def run(self, data):
         if self.callbacks is not None:
-            for function in self.callbacks:
+            for function in self.callbacks.values():
                 thread = get_thread(function, data)
                 thread.setDaemon(True)
                 thread.start()
@@ -164,10 +193,6 @@ class RFCEvent(Event):
         elif data.type.to_i() == 002:
             # RPL_YOURHOST
             logging.getLogger('ashiema').info('<- %s' % (data.message))
-        elif data.type.to_i() == 433:
-            # ERR_NICKNAMEINUSE
-            logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
-            data.connection.shutdown()
         elif data.type.to_i() == 376:
             # RPL_ENDOFMOTD
             if "join" in data.connection.__conn_hooks__:
@@ -178,6 +203,10 @@ class RFCEvent(Event):
                 )
             if "pluginload" in data.connection.__conn_hooks__:
                 data.connection.pluginloader.load()
+        elif data.type.to_i() == 433:
+            # ERR_NICKNAMEINUSE
+            logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
+            data.connection.shutdown()
         return
 
 class MessageEvent(Event):
@@ -185,22 +214,22 @@ class MessageEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
-        self.commands = ['NOTICE', 'PRIVMSG']
-        self.callbacks = []
+        self.commands = ['PRIVMSG']
+        self.callbacks = {}
        
     def callback(self):
         """ registers a function to be run on the processed data. """
         def wrapper(function):
             def new(*args, **kw):
-                self.callbacks.append(function)
+                self.callbacks[get_method_ident(function)] = function
             return new
         return wrapper
 
     def register(self, function):
-        self.callbacks.append(function)
+        self.callbacks[get_method_ident(function)] = function
 
     def deregister(self, function):
-        self.callbacks.remove(function)
+        del self.callbacks[get_method_ident(function)]
 
     def match(self, data):
         if self.commands.__contains__(str(data.type)):
@@ -208,7 +237,7 @@ class MessageEvent(Event):
     
     def run(self, data):
         if self.callbacks is not None:
-            for function in self.callbacks:
+            for name, function in self.callbacks.iteritems():
                 thread = get_thread(function, data)
                 thread.setDaemon(True)
                 thread.start()

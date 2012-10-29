@@ -26,3 +26,10 @@ class Channel(object):
         message = "TOPIC %s :%s" % (self.name, data)
         
         self.connection.send(message)
+    
+    def kick(self, user, reason = 'Your behaviour is not conductive to the desired environment'):
+        message = "KICK %s %s :%s" % (self.name, user, reason)
+        
+        self.connection.send(message)
+
+        

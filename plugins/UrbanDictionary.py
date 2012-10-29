@@ -114,7 +114,7 @@ class UrbanDictionary(Plugin):
                  _term, _definition = response
                  data.target.message(
                      "%s[UrbanDictionary]%s: Definition for %s%s%s:" % (e.BOLD, e.BOLD, e.BOLD, _term, e.BOLD),
-                     " %s==>%s %s" % (e.AQUA, e.AQUA, _definition)
+                     "%s[UrbanDictionary]%s: %s%s%s" % (e.BOLD, e.BOLD, e.AQUA, _definition, e.AQUA)
                  )
                  return
         except: [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]

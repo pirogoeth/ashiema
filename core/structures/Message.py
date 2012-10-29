@@ -24,6 +24,9 @@ class Message(object):
     
     def split(self, delim):
         return self.data.split(delim)
+        
+    def contains(self, value):
+        return value in self.to_s()
     
     def to_s(self):
         return str(self.data)
