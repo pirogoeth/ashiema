@@ -232,7 +232,7 @@ class MessageEvent(Event):
         del self.callbacks[get_method_ident(function)]
 
     def match(self, data):
-        if self.commands.__contains__(str(data.type)) and str(data.target) == data.connection.nick:
+        if self.commands.__contains__(str(data.type)) and str(data.target) != data.connection.nick:
             return True
     
     def run(self, data):
