@@ -35,21 +35,6 @@ class BasicUserEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
-        self.callbacks = {}
-       
-    def callback(self):
-        """ registers a function to be run on the processed data. """
-        def wrapper(function):
-            def new(*args, **kw):
-                self.callbacks[get_method_ident(function)] = function
-            return new
-        return wrapper
-
-    def register(self, function):
-        self.callbacks[get_method_ident(function)] = function
-
-    def deregister(self, function):
-        del self.callbacks[get_method_ident(function)]
     
     def match(self, data):
         pass
@@ -67,21 +52,6 @@ class PluginsLoadedEvent(Event):
     def __init__(self, eventhandler):
         Event.__init__(self, eventhandler)
         self.__register__()
-        self.callbacks = {}
-    
-    def register(self, function):
-        self.callbacks[get_method_ident(function)] = function
-    
-    def deregister(self, function):
-        del self.callbacks[get_method_ident(function)]
-        
-    def callback(self):
-        """ registers a function to be run on the processed data. """
-        def wrapper(function):
-            def new(*args, **kw):
-                self.callbacks[get_method_ident(function)] = function
-            return new
-        return wrapper
 
     def match(self, data = None):
         return get_connection().pluginloader._loaded
@@ -96,21 +66,6 @@ class ModeChangeEvent(Event):
         Event.__init__(self, eventhandler)
         self.__register__()
         self.commands = ['MODE', 'OMODE', 'UMODE']
-        self.callbacks = {}
-    
-    def register(self, function):
-        self.callbacks[get_method_ident(function)] = function
-    
-    def deregister(self, function):
-        del self.callbacks[get_method_ident(function)]
-    
-    def callback(self):
-        """ registers a function to be run on the processed data. """
-        def wrapper(function):
-            def new(*args, **kw):
-                self.callbacks[get_method_ident(function)] = function
-            return new
-        return wrapper
     
     def match(self, data = None):
         if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
@@ -145,21 +100,6 @@ class PMEvent(Event):
         Event.__init__(self, eventhandler)
         self.__register__()
         self.commands = ['PRIVMSG']
-        self.callbacks = {}
-       
-    def callback(self):
-        """ registers a function to be run on the processed data. """
-        def wrapper(function):
-            def new(*args, **kw):
-                self.callbacks[get_method_ident(function)] = function
-            return new
-        return wrapper
-
-    def register(self, function):
-        self.callbacks[get_method_ident(function)] = function
-
-    def deregister(self, function):
-        del self.callbacks[get_method_ident(function)]
 
     def match(self, data):
         if self.commands.__contains__(str(data.type)) and str(data.target) == data.connection.nick:
@@ -215,21 +155,6 @@ class MessageEvent(Event):
         Event.__init__(self, eventhandler)
         self.__register__()
         self.commands = ['PRIVMSG']
-        self.callbacks = {}
-       
-    def callback(self):
-        """ registers a function to be run on the processed data. """
-        def wrapper(function):
-            def new(*args, **kw):
-                self.callbacks[get_method_ident(function)] = function
-            return new
-        return wrapper
-
-    def register(self, function):
-        self.callbacks[get_method_ident(function)] = function
-
-    def deregister(self, function):
-        del self.callbacks[get_method_ident(function)]
 
     def match(self, data):
         if self.commands.__contains__(str(data.type)) and str(data.target) != data.connection.nick:

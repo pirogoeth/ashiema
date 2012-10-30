@@ -9,9 +9,10 @@ import xml.etree.cElementTree as xtree
 import sys, traceback
 
 class WolframAlpha(Plugin):
+
     def __init__(self, connection, eventhandler):
         
-        Plugin.__init__(self, connection, eventhandler)
+        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
     
         self.cache = {}
         self.scheduler = connection.scheduler
@@ -158,7 +159,10 @@ class WolframAlpha(Plugin):
         except (TypeError, AttributeError, IOError) as er:
             # a wild exception appears.
             [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
-            pass
+            return
+        except (IndexError) as e:
+            data.target.message("%s[Wolfram|Alpha]: %sPlease provide a query to search." % (e.LIGHT_BLUE, e.BOLD))
+            return
         except: raise
 
 __data__ = {

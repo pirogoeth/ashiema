@@ -7,7 +7,10 @@ class Event(object):
     
     def __init__(self, eventhandler):
         self.eventhandler = eventhandler
-        self.calls = {}
+        self.callbacks = {}
+        
+        self.get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
+        self.get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
 
     def __repr__(self):
         return "<Event>"
@@ -23,10 +26,24 @@ class Event(object):
         
         return self.connection
 
-    def __get_event__(self):
+    def __get_eventhandler__(self):
         """ returns the event handler """
         
         return self.eventhandler
+
+    def callback(self):
+        """ registers a function to be run on the data. """
+        def wrapper(function):
+            def new(*args, **kw):
+                self.callbacks[self.get_method_ident(function)] = function
+            return new
+        return wrapper
+    
+    def register(self, function):
+        self.callbacks[self.get_method_ident(function)] = function
+
+    def deregister(self, function):
+        del self.callbacks[self.get_method_ident(function)]
 
     def match(self, data):
         """ this is a method that will provide the hooking system a mechanism

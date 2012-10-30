@@ -10,7 +10,7 @@ class UrbanDictionary(Plugin):
 
     def __init__(self, connection, eventhandler):
     
-        Plugin.__init__(self, connection, eventhandler)
+        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
         self.cache = {}
         self.scheduler = connection.scheduler
