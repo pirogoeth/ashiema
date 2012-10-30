@@ -88,6 +88,7 @@ class PluginLoader(object):
                 except:
                     self.log.info('an error has occurred in %s (%s):' % (plugin, data['version']))
                     [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
+                    continue
             self.log.info('all plugins have been loaded.')
             # run the PluginsLoadedEvent
             get_connection()._evh.get_default_events()['PluginsLoadedEvent'].run()

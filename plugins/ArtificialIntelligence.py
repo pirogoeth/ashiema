@@ -19,9 +19,9 @@ class ArtificialIntelligence(Plugin):
 
     def __init__(self, connection, eventhandler):
     
-        Plugin.__init__(self, connection, eventhandler)
+        Plugin.__init__(self, connection, eventhandler, needs_dir = True)
         
-        self.brain = megahal.MegaHAL(brainfile = os.getcwd() + "/brain")
+        self.brain = megahal.MegaHAL(brainfile = self.get_path() + "/brain")
         self.scheduler = connection.scheduler
         
         self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
@@ -56,20 +56,25 @@ class ArtificialIntelligence(Plugin):
     
     def sync(self):
     
-        thread = get_thread(self.brain.sync, ())
+        thread = get_thread(self.brain.sync, None)
         thread.setDaemon(True)
         thread.start()
     
     def handler(self, data):
     
         if data.message == (0, '@learn'):
+            assert self.identification.require_level(data, 1)
             try:
                 url = data.message[1]
             except IndexError:
                 data.target.message("%s[AI]%s: %sPlease provide a URL to learn from." % (Escapes.RED, Escapes.WHITE, (Escapes.BOLD + Escapes.AQUA)))
                 return
             content = urlopen(url).read().split('\n')
-            [self.brain.learn(line) for line in content]
+            for line in content:
+                if line is '':
+                    continue
+                else:
+                    self.brain.learn(line)
             data.target.message("%s[AI]%s: %sLearned from %s%s%s lines." % (Escapes.RED, Escapes.WHITE, (Escapes.BOLD + Escapes.AQUA), Escapes.LIGHT_BLUE, len(content), (Escapes.BOLD + Escapes.AQUA)))
             self.sync()
         elif data.message == (0, '@chance'):
@@ -85,7 +90,7 @@ class ArtificialIntelligence(Plugin):
             self.response_chance = new_chance
             data.target.message("%s[AI]%s: Set chance to %s%s." % (Escapes.RED, Escapes.WHITE, (Escapes.BOLD + Escapes.AQUA), new_chance))
         elif data.message == (0, self.connection.nick + ",") or data.message == (0, self.connection.nick + ":") or data.message == (0, self.connection.nick):
-            data.target.message(self.brain.get_reply(data.origin.nick + ", " + data.message[1:]))
+            data.target.message(self.brain.get_reply(data.origin.nick + ", " + ' '.join(data.message[1:])))
         else:
             self.brain.learn(data.message.to_s())
             resp = randint(1, 100)

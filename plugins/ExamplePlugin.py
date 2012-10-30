@@ -5,8 +5,9 @@ from core import CorePlugin
 from core.CorePlugin import Plugin
 
 class ExamplePlugin(Plugin):
+
     def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler)
+        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
         self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
         

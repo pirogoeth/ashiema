@@ -2,7 +2,7 @@
 
 import os, hashlib, shelve
 
-db_file = os.getcwd() + "/../etc/users.db"
+db_file = os.getcwd() + "/../plugins/IdentificationPlugin/users"
 
 username = raw_input("username: ")
 password = raw_input("password: ")
