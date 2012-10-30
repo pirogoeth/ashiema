@@ -2,3 +2,5 @@ logs
 logs/*
 *.pyc
 test.conf
+plugins/IdentificationPlugin/users.db
+plugins/ArtificialIntelligence/brain.db
