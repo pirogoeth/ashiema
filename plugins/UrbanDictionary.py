@@ -125,3 +125,21 @@ __data__ = {
     'require'   : ["IdentificationPlugin"],
     'main'      : UrbanDictionary
 }
+
+__help__ = {
+    '@ud'             : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Searches UrbanDictionary for a term.',
+        PARAMS  : '<term>'
+    },
+    '@ud-cache'       : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Displays the number of entries held in the cache.',
+        PARAMS  : ''
+    },
+    '@ud-cache-clear' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Clears the cache forcibly before the scheduled time.',
+        PARAMS  : ''
+    }
+}

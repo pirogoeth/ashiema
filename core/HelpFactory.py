@@ -5,6 +5,7 @@
 CONTEXT = "context"
 DESC = "desc"
 PARAMS = "params"
+ALIASES = "aliases"
 
 class Contexts(object):
     

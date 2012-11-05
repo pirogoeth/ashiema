@@ -71,7 +71,7 @@ class WolframAlpha(Plugin):
             data.target.message("%s[Wolfram|Cache]: cache forcibly cleared." % (e.LIGHT_BLUE))
             return
    
-    def search(self, query, format = ('plaintext',), _referrer = None):
+    def search(self, query, format = ('plaintext',)):
        
         return self.parseWolframResponse(urlopen(
             "http://api.wolframalpha.com/v2/query?%s" % (
@@ -85,18 +85,12 @@ class WolframAlpha(Plugin):
             )
         ), _referrer = _referrer)
        
-    def parseWolframResponse(self, response, redirected = False, results = None, _referrer = None):
+    def parseWolframResponse(self, response, redirected = False, results = None):
        
         results = results if results is not None else []
         tree = xtree.fromstring(response.read())
         recalculate = tree.get('recalculate') if tree.get('recalculate') else False
         success = tree.get('success')
-        if _referrer is not None:
-            _referrer.target.message(
-                "success ==> %s%s%s" % (e.BOLD, success, e.NL),
-                "recalculating? ==> %s%s%s" % (e.BOLD, str(recalculate), e.NL),
-                "pods ==> %s%s%s" % (e.BOLD, tree.findall('pod'), e.NL)
-            )
         if success == 'true':
             for pod in tree.findall('pod'):
                 title = pod.get('title')
@@ -105,41 +99,25 @@ class WolframAlpha(Plugin):
                     results.append((title, plaintext.text.split('\n')))
             if recalculate is not False:
                 if not redirected:
-                    if _referrer is not None: _referrer.target.message("return status ==> r")
-                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results, _referrer = _referrer)
+                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results)
                 elif results:
-                    if _referrer is not None: _referrer.target.message("return status ==> a")
                     return True, results
                 else:
-                    if _referrer is not None: _referrer.target.message("return status ==> b")
                     return False, "Too many redirects."
             elif success == 'true' and recalculate is False and results is not None:
-                if _referrer is not None: _referrer.target.message("return status ==> c")
                 return True, results
         else:
-            if _referrer is not None: _referrer.target.message("return status ==> d")
             return False, [tip.get("text") for tip in tree.findall("tips/tip")]
             
     def beginWolframQuery(self, data, query):    
         data.target.privmsg("%s[Wolfram|Alpha]%s: %sSearching..." % (e.BOLD, e.BOLD, e.LIGHT_BLUE))
         try:
-            if query.split()[0] == ":d:":
-                assert self.identification.require_level(data, 2), data.target.message("%s[Wolfram|Alpha]%s: %sSearch cancelled." % (e.BOLD, e.BOLD, e.LIGHT_BLUE))
-                _referrer = data
-                query = " ".join(query.split()[1:])
-                data.target.message("%s[Wolfram|Alpha]%s: %sDebug mode is %sENABLED%s." % (e.BOLD, e.BOLD, e.LIGHT_BLUE, e.BOLD, e.BOLD))
-            else: _referrer = None
             if query in self.cache:
                 response = self.cache[query]
                 have_results = True
             elif query not in self.cache:
-                result = self.search(query, _referrer = _referrer)
+                result = self.search(query)
                 have_results, response = result
-                if _referrer is not None:
-                    data.target.message(
-                        "has results? ==> %s%s%s" % (e.BOLD, have_results, e.NL),
-                        "response ==> %s%s%s" % (e.BOLD, str(response)[0:20] + "...", e.NL)
-                    )
                 self.cache.update({
                     query: response
                 })
@@ -170,4 +148,22 @@ __data__ = {
     'version' : "1.0",
     'require' : ["IdentificationPlugin"],
     'main'    : WolframAlpha
+}
+
+__help__ = {
+    '@wa'             : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Searches Wolfram|Alpha for a query.',
+        PARAMS  : '<query>'
+    },
+    '@wa-cache'       : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Displays the number of entries held in the cache.',
+        PARAMS  : ''
+    },
+    '@wa-cache-clear' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Clears the cache forcibly before the scheduled time.',
+        PARAMS  : ''
+    }
 }
