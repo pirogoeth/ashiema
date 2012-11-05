@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import os, logging, core, sys, traceback, re
-from core import CorePlugin, Event, get_connection, util
+from core import CorePlugin, Event, HelpFactory, get_connection, util
 from core.util import Escapes as e
 from core.CorePlugin import Plugin
+from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS
 from urllib import urlopen
 
 class AutoMeme(Plugin):
@@ -36,4 +37,12 @@ __data__ = {
     'version'   : "1.0",
     'require'   : [],
     'main'      : AutoMeme
+}
+
+__help__ = {
+    '@meme' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Pulls a meme from the autome.me website and displays it in the current channel.',
+        PARAMS  : ''
+    }
 }

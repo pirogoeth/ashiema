@@ -133,6 +133,9 @@ class RFCEvent(Event):
         elif data.type.to_i() == 002:
             # RPL_YOURHOST
             logging.getLogger('ashiema').info('<- %s' % (data.message))
+        elif data.type.to_i() == 353:
+            # RPL_NAMREPLY
+            pass
         elif data.type.to_i() == 376:
             # RPL_ENDOFMOTD
             if "join" in data.connection.__conn_hooks__:

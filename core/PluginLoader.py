@@ -2,7 +2,8 @@
 
 import imp, util, os, logging, traceback, core
 from imp import load_source
-from core import get_connection
+from core import get_connection, HelpFactory
+from HelpFactory import HelpFactory, Contexts
 
 class PluginLoader(object):
     """ this manages loading and unloading of all plugins. """
@@ -14,6 +15,7 @@ class PluginLoader(object):
         # set up objects
         self.connection = connection
         self.eventhandler = eventhandler
+        self.helpfactory = HelpFactory()
         # set up logging
         self.log = logging.getLogger('ashiema')
         # assertion
@@ -59,7 +61,8 @@ class PluginLoader(object):
                 plugins.append(file)
         # update container with plugin information
         for plugin in plugins:
-            source = load_source(plugin.split('.')[0], plugin_dir + plugin)
+            try: source = load_source(plugin.split('.')[0], plugin_dir + plugin)
+            except: continue
             if not hasattr(source, '__data__'): continue
             self.container.update(
                 {
@@ -71,6 +74,9 @@ class PluginLoader(object):
                     }
                 }
             )
+            # load the help, if it's there.
+            if hasattr(source, '__help__'):
+                self.helpfactory.register(source.__data__['name'], source.__help__)
         # check requires
         self.container = self.__depcheck__(self.container)    
         """ setting the loading variable here makes dependency requires work correctly, and at this point, all plugins

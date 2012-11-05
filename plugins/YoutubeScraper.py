@@ -5,7 +5,7 @@ from core import CorePlugin, Event, get_connection, util
 from core.util import Escapes
 from core.CorePlugin import Plugin
 from contextlib import closing
-from urllib2 import urlopen
+from urllib2 import urlopen, HTTPError
 
 class YoutubeScraper(Plugin):
 
@@ -33,9 +33,12 @@ class YoutubeScraper(Plugin):
      
         if len(self.pattern.findall(data.message.to_s())) >= 1:
             for id in self.pattern.findall(data.message.to_s()):
-                with closing(urlopen(self.apiurl % (id))) as req:
-                   info = json.loads(req.read(), encoding = 'utf-8')
-                   data.target.message(self.format.replace("&t", info['data']['title']).replace("&a", info['data']['uploader']))
+                try:
+                    with closing(urlopen(self.apiurl % (id))) as req:
+                        info = json.loads(req.read(), encoding = 'utf-8')
+                        data.target.message(self.format.replace("&t", info['data']['title']).replace("&a", info['data']['uploader']))
+                except (HTTPError, IOError) as e:
+                    data.target.message("[%sYou%sTube%s] Invalid video link!" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK))
 
 
 __data__ = {

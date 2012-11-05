@@ -2,12 +2,21 @@
 
 """ represents a channel """
 
+_channels = {}
+
 class Channel(object):
     def __init__(self, connection, channel):
-        self.connection = connection
-        self.name = channel
+        if channel in _channels:
+            self = _channels[channel]
+        elif channel not in _channels:
+            self.connection = connection
+            self.name = channel
+            _channels[channel] = self
     
     def __repr__(self):
+        return str(self.name)
+    
+    def to_s(self):
         return str(self.name)
     
     def message(self, *data):
@@ -31,5 +40,3 @@ class Channel(object):
         message = "KICK %s %s :%s" % (self.name, user, reason)
         
         self.connection.send(message)
-
-        

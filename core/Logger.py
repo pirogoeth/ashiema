@@ -26,10 +26,16 @@ def set_level(level = "info"):
     
     logging.getLogger('ashiema').setLevel(_levels[level])
 
-def setup_logger():
+def setup_logger(stream = False):
     global _path
 
     log = logging.getLogger("ashiema")
+
+    if stream is True:
+        s = logging.StreamHandler()
+        s.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        log.addHandler(s)
+
     handler = handlers.RotatingFileHandler(_path, maxBytes = 10000, backupCount = 5)
     formatter = logging.Formatter('{%(name)s}[%(levelname)s/%(asctime)s]: %(message)s')
     handler.setFormatter(formatter)

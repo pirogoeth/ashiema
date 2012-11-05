@@ -70,7 +70,7 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert address and port, 'Parameters for connection have not been provided.'
         
-        _ssl = True if _ssl is True or _ssl is "True" or _ssl is "true" else False
+        _ssl = True if _ssl == True or _ssl == "True" or _ssl == "true" else False
         if _ssl is True:
             self.connection = ssl.wrap_socket(self._socket)
             self.log.info("connection type: SSL")
@@ -119,32 +119,35 @@ class Connection(object):
         # cycle counter
         _cc = 1
         while self._connected is True:
-            # first, sleep so we don't slurp up CPU time like no tomorrow
-            time.sleep(0.005)
-            # send user registration if we're not already registered and about 35 cycles have passed
-            if not self._registered and _cc is 20:
-                if self._passrequired: 
-                    self.send("PASS :%s" % (self._password))
-                    self._password = None
-                self.send("NICK %s" % (self.nick))
-                self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
-                self._registered = True
-            # now, select.
-            r, w, e = select.select([self.connection], [], [self.connection], .025)
-            # now GO!
-            if self.connection in r:
-                self.parse(self.connection.recv(35000))
-            # check if im in the errors
-            if self.connection in e:
-                self._connected = False
-                self.log.severe("error during poll; aborting")
-                break
-            # process the data thats in the queue
             try:
-                [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
-            except (QueueError):
-                pass
-            _cc += 1
+                # first, sleep so we don't slurp up CPU time like no tomorrow
+                time.sleep(0.005)
+                # send user registration if we're not already registered and about 35 cycles have passed
+                if not self._registered and _cc is 20:
+                    if self._passrequired: 
+                        self.send("PASS :%s" % (self._password))
+                        self._password = None
+                    self.send("NICK %s" % (self.nick))
+                    self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
+                    self._registered = True
+                # now, select.
+                r, w, e = select.select([self.connection], [], [self.connection], .025)
+                # now GO!
+                if self.connection in r:
+                    self.parse(self.connection.recv(35000))
+                # check if im in the errors
+                if self.connection in e:
+                    self._connected = False
+                    self.log.severe("error during poll; aborting")
+                    break
+                # process the data thats in the queue
+                try:
+                    [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
+                except (QueueError):
+                    pass
+                _cc += 1
+            except (KeyboardInterrupt, SystemExit) as e:
+                self.shutdown()
         # what are we going to do after the loop closes?
         self.log.info("shutting down.")
         self.connection.close()
