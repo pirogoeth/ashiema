@@ -6,11 +6,12 @@ _channels = {}
 
 class Channel(object):
     def __init__(self, connection, channel):
+        self.connection = connection
+        self.name = channel
+
         if channel in _channels:
             self = _channels[channel]
         elif channel not in _channels:
-            self.connection = connection
-            self.name = channel
             _channels[channel] = self
     
     def __repr__(self):

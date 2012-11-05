@@ -62,7 +62,10 @@ class PluginLoader(object):
         # update container with plugin information
         for plugin in plugins:
             try: source = load_source(plugin.split('.')[0], plugin_dir + plugin)
-            except: continue
+            except:
+                self.log.info('an error has occurred while loading plugins.')
+                [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
+                continue
             if not hasattr(source, '__data__'): continue
             self.container.update(
                 {

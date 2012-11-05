@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import os, logging, shelve, core, traceback
-from core import CorePlugin, Event, get_connection, md5, util
+from core import CorePlugin, Event, HelpFactory, get_connection, md5, util
 from core.CorePlugin import Plugin
+from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS
 from core.util import Escapes
 
 class IdentificationPlugin(Plugin):
