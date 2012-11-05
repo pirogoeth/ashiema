@@ -13,7 +13,7 @@ class YoutubeScraper(Plugin):
     
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
-        self.regexp = r"""(?:http://(?:www.|)youtube.com/(?:watch\?v=(\w*)))"""
+        self.regexp = r"""(?:https?://(?:www.|)youtube.com/(?:watch\?v=([\w-]*)))"""
         self.pattern = re.compile(self.regexp, re.VERBOSE)
         
         self.format = "[%sYou%sTube%s] %s&t%s - %s&a%s" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
