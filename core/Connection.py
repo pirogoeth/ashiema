@@ -104,7 +104,7 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        self.connection.send(data)
+        self.connection.send(data.encode('UTF-8'))
    
     def run(self):
         """ runs the polling loop. 

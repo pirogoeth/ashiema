@@ -3,7 +3,8 @@
 import os, core, sys, logging, traceback
 from core import get_connection, md5, CorePlugin, Event, HelpFactory
 from core.CorePlugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS
+from core.HelpFactory import Contexts
+from core.HelpFactory import CONTEXT, DESC, PARAMS
 
 class SystemEvent(Event.Event):
 
@@ -83,12 +84,12 @@ __help__ = {
         DESC    : 'Shuts down the bot safely.',
         PARAMS  : ''
     },
-    'reload'   :
+    'reload'   : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Reloads all plugins and loads all new plugins.',
         PARAMS  : ''
     },
-    'rehash'   :
+    'rehash'   : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Reloads the configuration.',
         PARAMS  : ''

@@ -4,6 +4,8 @@ import os, logging, core, sys, traceback, re, json
 from core import CorePlugin, Event, get_connection, util
 from core.util import Escapes as e
 from core.CorePlugin import Plugin
+from core.HelpFactory import Contexts
+from core.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
 
 class UrbanDictionary(Plugin):

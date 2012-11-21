@@ -115,7 +115,7 @@ class ArtificialIntelligence(Plugin):
                 return
             self.brain.learn(data.message.to_s())
             resp = randint(1, 100)
-            if resp < self.response_chance:
+            if resp < self.response_chances[data.target.to_s()]:
                 data.target.message(self.brain.get_reply(data.message.to_s()))
 
 __data__ = {
