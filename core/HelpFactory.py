@@ -44,6 +44,17 @@ class HelpFactory(object):
         for key, entry in self._help[plugin].iteritems():
             entry.update({'name' : key})
             yield entry
+    
+    def getHelp(self, filter_func = None):
+        results = []
+        
+        for plugin in self._help.keys():
+            for key, entry in self._help[plugin].iteritems():
+                entry.update({'name' : key})
+                results.append(entry)
+        
+        for entry in filter(filter_func, results):
+            yield entry
 
     def getHelpByFilter(self, filter_func):
         results = []
