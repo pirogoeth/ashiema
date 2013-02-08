@@ -12,6 +12,23 @@ class Contexts(object):
     PUBLIC  = "public"
     PRIVATE = "private"
 
+class Filters(object):
+
+    def _public(entry):
+        if entry[CONTEXT] is Contexts.PUBLIC:
+            return True
+        else:
+            return False
+    
+    def _private(entry):
+        if entry[CONTEXT] is Contexts.PRIVATE:
+            return True
+        else:
+            return False
+
+    PUBLIC = _public
+    PRIVATE = _private
+
 class HelpFactory(object):
 
     def __init__(self):
@@ -28,36 +45,45 @@ class HelpFactory(object):
             entry.update({'name' : key})
             yield entry
 
-    def getPublicHelp(self):
+    def getHelpByFilter(self, filter_func):
         results = []
-
-        def filter_pub(entry):
-            if entry[CONTEXT] is Contexts.PUBLIC:
-                return True
-            else:
-                return False
-
+        
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
-                entry.update({'name' : key})
+                entry.update({'name': key})
                 results.append(entry)
-
-        for entry in filter(filter_pub, results):
+        
+        for entry in filter(filter_func, results):
+            yield entry
+    
+    def getFilteredHelpForPlugin(self, plugin, filter_func):
+        results = []
+        
+        for key, entry in self._help[plugin].iteritems():
+            entry.update({'name': key})
+            results.append(entry)
+        
+        for entry in filter(filter_func, results):
             yield entry
 
-    def getPrivateHelp(self):
+    def getAllPublicHelp(self):
         results = []
-
-        def filter_priv(entry):
-            if entry[CONTEXT] is Contexts.PRIVATE:
-                return True
-            else:
-                return False
 
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
                 entry.update({'name' : key})
                 results.append(entry)
 
-        for entry in filter(filter_priv, results):
+        for entry in filter(Filters.PUBLIC, results):
+            yield entry
+
+    def getAllPrivateHelp(self):
+        results = []
+
+        for plugin in self._help.keys():
+            for key, entry in self._help[plugin].iteritems():
+                entry.update({'name' : key})
+                results.append(entry)
+
+        for entry in filter(Filters.PRIVATE, results):
             yield entry

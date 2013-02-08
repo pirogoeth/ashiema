@@ -1,12 +1,35 @@
 #!/usr/bin/env python
 
-import os, logging, core, sys, traceback, re, json
+import os, logging, core, sys, traceback, re, json, htmlentitydefs
 from core import CorePlugin, Event, get_connection, util
 from core.util import Escapes as e
 from core.CorePlugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
+
+def unescape(text):
+    def fixup(m):
+        text = m.group(0)
+        if text[:2] == "&#":
+            # character reference
+            try:
+                if text[:3] == "&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub("&#?\w+;", fixup, text)
+
+
 
 class UrbanDictionary(Plugin):
 
@@ -82,6 +105,9 @@ class UrbanDictionary(Plugin):
         ))
         _data = u'%s' % (_data.read().replace('\n', '\\n'))
         _data = json.loads(_data)['string']
+        _data = unescape(_data)
+        if "isn't defined yet" in _data:
+            return (term, term + " is not defined yet.")
         content = re.compile(r"<div>(.+?)<\/div><div>(.+?)<\/div>")
         escapes = re.compile(r"[\r\n\t]")
         escaped = escapes.sub('', _data.replace("<br/>", '').replace('&quot;', '"').strip())

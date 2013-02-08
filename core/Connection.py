@@ -14,7 +14,7 @@ from EventHandler import EventHandler
 class Connection(object):
     """ Connection object to manage the connection 
         to the uplink """
-    
+        
     def __init__(self, configuration):
         global connection
         """ initialise connection object. """
