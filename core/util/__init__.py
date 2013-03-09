@@ -1,5 +1,10 @@
 import os, sys, signal
 
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
 """ these are some various utilities needed for use in the startup process and other parts of runtime """
 
 def fork():

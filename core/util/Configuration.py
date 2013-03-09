@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
 class Configuration(object):
     """ this will hold the configuration.
         it will not actually read the configuration itself, but it

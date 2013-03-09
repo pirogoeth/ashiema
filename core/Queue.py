@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-""" this implementing a FIFO queue for use by the select loop in Connection.py """
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
+""" this implements a FIFO queue for use by the select loop in Connection.py """
+
 class Queue(object):
     def __init__(self, maxsize = 0):
         self._queue = []

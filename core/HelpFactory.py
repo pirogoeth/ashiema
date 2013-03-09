@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-# constants for making __help__ dicts...just in case stuff chances in the future.
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
+# constants for making __help__ dicts...just in case stuff changes in the future.
 
 CONTEXT = "context"
 DESC = "desc"

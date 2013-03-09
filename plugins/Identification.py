@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
 import os, logging, shelve, core, traceback
 from core import CorePlugin, Event, HelpFactory, get_connection, md5, util
 from core.CorePlugin import Plugin
