@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import Event, logging, time, threading, core
+import Event, logging, time, threading, core, datetime
 from Event import Event
 from core import get_connection
 
@@ -17,15 +17,16 @@ class DefaultEventChainloader(object):
     
     def __init__(self, eventhandler):
         self.defaults = {
-            'RFCEvent': RFCEvent(eventhandler), # mainly server triggered events
-            'PingEvent': PingEvent(eventhandler),
-            'ErrorEvent': ErrorEvent(eventhandler),
-            'ModeChangeEvent': ModeChangeEvent(eventhandler),
-            'MessageEvent': MessageEvent(eventhandler), # user triggered events
-            'PMEvent': PMEvent(eventhandler),
-            'JoinEvent': UserJoinedEvent(eventhandler),
-            'PartEvent': UserPartedEvent(eventhandler),
-            'QuitEvent': UserQuitEvent(eventhandler),
+            'RFCEvent'          : RFCEvent(eventhandler), # mainly server triggered events
+            'PingEvent'         : PingEvent(eventhandler),
+            'ErrorEvent'        : ErrorEvent(eventhandler),
+            'ModeChangeEvent'   : ModeChangeEvent(eventhandler),
+            'CTCPEvent'         : CTCPEvent(eventhandler),
+            'MessageEvent'      : MessageEvent(eventhandler), # user triggered events
+            'PMEvent'           : PMEvent(eventhandler),
+            'JoinEvent'         : UserJoinedEvent(eventhandler),
+            'PartEvent'         : UserPartedEvent(eventhandler),
+            'QuitEvent'         : UserQuitEvent(eventhandler),
             'PluginsLoadedEvent': PluginsLoadedEvent(eventhandler) # system triggered events
         }
     
@@ -216,3 +217,36 @@ class PingEvent(Event):
        resp = "PONG :%s" % (str(data.message))
        data.connection.send(resp)
        return
+
+class CTCPEvent(Event):
+
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler, "CTCPEvent")
+        self.__register__()
+        
+    def match(self, data):
+        if str(data.type) == 'PRIVMSG' and data.target.is_self():
+            if data.message == (0, "\x01VERSION\x01"):
+                return True
+            elif data.message == (0, "\x01TIME\x01"):
+                return True
+            elif data.message == (0, "\x01PING\x01"):
+                return True
+            elif data.message == (0, "\x01DCC\x01"):
+                return True
+            else:
+                return False
+
+    def run(self, data):
+        if data.message == (0, "\x01VERSION\x01"):
+            data.origin.notice("VERSION ashiema IRC bot [%s] - http://github.com/pirogoeth/ashiema" % (core.version))
+        elif data.message == (0, "\x01TIME\x01"):
+            data.origin.notice("TIME %s" % (datetime.datetime.now().strftime("%a %d %b %Y %I:%M:%S %p %Z")))
+        elif data.message == (0, "\x01PING\x01"):
+            try: resp = data.message[1]
+            except: resp = "Pong!"
+            data.origin.notice("PING %s" % (resp))
+        elif data.message == (0, "\x01DCC\x01"):
+            data.origin.notice("DCC Not Available")
+        else:
+            return

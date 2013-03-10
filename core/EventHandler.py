@@ -41,7 +41,7 @@ class EventHandler(object):
     def register(self, event):
         """ register an event in the handler """
         
-        self.events.update({event.__get_name__(): event)
+        self.events.update({event.__get_name__(): event})
     
     def deregister(self, event):
         """ deregister an event from the handler """

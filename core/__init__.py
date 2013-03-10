@@ -7,6 +7,8 @@
 
 import hashlib
 
+version = "1.0"
+
 def get_connection():
     return _connection
 

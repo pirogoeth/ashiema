@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import re
+import re, logging
 
 class User(object):
     def __init__(self, connection, userstring):
@@ -22,6 +22,12 @@ class User(object):
     
     def __eq__(self, name):
         return str(self.nick) == name     
+    
+    def is_self(self):
+        if self.nick == self.connection.nick:
+            return True
+        else:
+            return False
     
     def message(self, *data):
         for slice in data:
