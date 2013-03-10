@@ -203,20 +203,22 @@ class UserQuitEvent(BasicUserEvent):
 
 class PingEvent(Event):
    
-   def __init__(self, eventhandler):
-       Event.__init__(self, eventhandler, "PingEvent")
-       self.__register__()
+    def __init__(self, eventhandler):
+        Event.__init__(self, eventhandler, "PingEvent")
+        self.__register__()
    
-   def match(self, data):
-       if str(data.type) == 'PING':
-           return True
+    def match(self, data):
+        if str(data.type) == 'PING':
+            return True
    
-   def run(self, data):
-       if data.connection.debug: logging.getLogger('ashiema').debug('<- ping received at %s' % (time.time()))
-       # form the response message
-       resp = "PONG :%s" % (str(data.message))
-       data.connection.send(resp)
-       return
+    def run(self, data):
+        if data.message is None:
+            data.message = data._raw.split(":")[1]
+        if data.connection.debug: logging.getLogger('ashiema').debug('<- ping received at %s, has data "%s"' % (time.time(), str(data.message)))
+        # form the response message
+        resp = "PONG :%s" % (str(data.message))
+        data.connection.send(resp)
+        return
 
 class CTCPEvent(Event):
 
@@ -226,7 +228,7 @@ class CTCPEvent(Event):
         
     def match(self, data):
         if str(data.type) == 'PRIVMSG' and data.target.is_self():
-            if data.message == (0, "\x01VERSION\x01"):
+            if data.message == (0, "\x01VERSION\x01") or data.message == (0, "VERSION"):
                 return True
             elif data.message == (0, "\x01TIME\x01"):
                 return True
@@ -238,7 +240,7 @@ class CTCPEvent(Event):
                 return False
 
     def run(self, data):
-        if data.message == (0, "\x01VERSION\x01"):
+        if data.message == (0, "\x01VERSION\x01") or data.message == (0, "VERSION"):
             data.origin.notice("VERSION ashiema IRC bot [%s] - http://github.com/pirogoeth/ashiema" % (core.version))
         elif data.message == (0, "\x01TIME\x01"):
             data.origin.notice("TIME %s" % (datetime.datetime.now().strftime("%a %d %b %Y %I:%M:%S %p %Z")))
