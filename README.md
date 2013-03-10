@@ -143,7 +143,7 @@ __help__ = {
     'command' : {
         CONTEXT : Contexts.PUBLIC **OR** Contexts.PRIVATE,
         DESC    : 'Command description',
-        PARMAS  : '<string> <describing> <all> [params]'
+        PARAMS  : '<string> <describing> <all> [params]'
     }
 }
 ```
@@ -242,6 +242,7 @@ If this readme is lacking any crucial information, file an issue stating what is
 License
 =======
 
+```
 ashiema: a lightweight, modular IRC bot written in python.
 Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
 
@@ -256,4 +257,4 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with this program.  If not, see <http://www.gnu.org/licenses/>.```
