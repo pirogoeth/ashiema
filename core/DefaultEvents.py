@@ -228,7 +228,7 @@ class CTCPEvent(Event):
         
     def match(self, data):
         if str(data.type) == 'PRIVMSG' and data.target.is_self():
-            if data.message == (0, "\x01VERSION\x01") or data.message == (0, "VERSION"):
+            if data.message == (0, "\x01VERSION\x01"):
                 return True
             elif data.message == (0, "\x01TIME\x01"):
                 return True
@@ -240,7 +240,7 @@ class CTCPEvent(Event):
                 return False
 
     def run(self, data):
-        if data.message == (0, "\x01VERSION\x01") or data.message == (0, "VERSION"):
+        if data.message == (0, "\x01VERSION\x01"):
             data.origin.notice("VERSION ashiema IRC bot [%s] - http://github.com/pirogoeth/ashiema" % (core.version))
         elif data.message == (0, "\x01TIME\x01"):
             data.origin.notice("TIME %s" % (datetime.datetime.now().strftime("%a %d %b %Y %I:%M:%S %p %Z")))
