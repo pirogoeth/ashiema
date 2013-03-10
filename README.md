@@ -232,7 +232,7 @@ If you wish to contribute to this project, make sure your changes follow the fol
 1. Use spaces, not tabs.  Spaces are much prettier.
 2. When indenting, only use four spaces per "indention".
 3. Use method_name, not methodName when naming methods/fields/etc.
-4. When working with "private or protected" methods, use __method__ or _method_.
+4. When working with "private or protected" methods, use ```__method__``` or ```_method_```.
 5. Make sure your code is readable enough that someone can determine what it does if you don't provide documentation with it.  If you provide docs, go crazy.
 
 If you wish to contribute long-term to the project (eg., repo contributor..), send an email to <pirogoeth@maio.me> noting what you want and tell me why you want to help :)
