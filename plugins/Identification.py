@@ -8,7 +8,7 @@
 import os, logging, shelve, core, traceback
 from core import CorePlugin, Event, HelpFactory, get_connection, md5, util
 from core.CorePlugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS
+from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from core.util import Escapes
 
 class IdentificationPlugin(Plugin):
@@ -168,21 +168,25 @@ __help__ = {
     'login'    : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Identifies you with the bot and gives you permission to perform actions.',
-        PARAMS  : '<username> <password>'
+        PARAMS  : '<username> <password>',
+        ALIASES : []
     },
     'logout'   : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Removes your session from the bot, removing access permissions.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'register' : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Creates an account for the bot to identify you with.',
-        PARAMS  : '<username> <password>'
+        PARAMS  : '<username> <password>',
+        ALIASES : []
     },
     'setlevel' : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Sets the access level of the specified account.',
-        PARAMS  : '<username> <accesslevel>'
+        PARAMS  : '<username> <accesslevel>',
+        ALIASES : []
     }
 }

@@ -25,6 +25,9 @@ class Channel(object):
     def to_s(self):
         return str(self.name)
     
+    def is_self(self):
+        return False
+    
     def message(self, *data):
         for slice in data:
             message = "PRIVMSG %s :%s" % (self.name, slice)

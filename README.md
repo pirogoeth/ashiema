@@ -138,12 +138,14 @@ __help__ = {
     'example' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Does something.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'otherexample' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Does something else.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     }
 }
 ```
@@ -160,7 +162,8 @@ __help__ = {
     'command' : {
         CONTEXT : Contexts.PUBLIC **OR** Contexts.PRIVATE,
         DESC    : 'Command description',
-        PARAMS  : '<string> <describing> <all> [params]'
+        PARAMS  : '<string> <describing> <all> [params]',
+        ALIASES : ['aliases', 'for', 'this', 'command']
     }
 }
 ```
@@ -172,17 +175,20 @@ __help__ = {
     'example' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Does something.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'otherexample' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Does something else.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'other' : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Does something privately.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     }
 }
 ```

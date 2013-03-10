@@ -25,6 +25,8 @@ class PluginLoader(object):
         self.log = logging.getLogger('ashiema')
         # assertion
         self._loaded = False
+        # skip loads
+        self._skip = self.connection.configuration.get_value('plugins', 'skip_on_load') or []
     
     def __call__(self):
         return self.loaded
@@ -72,6 +74,7 @@ class PluginLoader(object):
                 [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
                 continue
             if not hasattr(source, '__data__'): continue
+            if source.__data__['name'] in self._skip: continue
             self.container.update(
                 {
                     source.__data__['name']:
@@ -91,6 +94,7 @@ class PluginLoader(object):
             are effectively loaded, but they are just not yet initialised. """
         self._loaded = True
         # initialise plugins
+        unload = []
         if self.container:
             for plugin, data in self.container.iteritems():
                 try:
@@ -102,7 +106,13 @@ class PluginLoader(object):
                 except:
                     self.log.info('an error has occurred in %s (%s):' % (plugin, data['version']))
                     [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
+                    unload.append(plugin)
                     continue
+            if len(unload) > 0:
+                self.log.info('some plugins have failed to load.')
+                for plugin in unload:
+                    self.container.pop(plugin)
+                    self.log.error('%s failed to load and has been unloaded.' % (plugin))
             self.log.info('all plugins have been loaded.')
             # run the PluginsLoadedEvent
             get_connection()._evh.get_default_events()['PluginsLoadedEvent'].run()

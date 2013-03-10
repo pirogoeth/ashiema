@@ -9,12 +9,12 @@ import os, core, sys, logging, traceback
 from core import get_connection, md5, CorePlugin, Event, HelpFactory
 from core.CorePlugin import Plugin
 from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS
+from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
 
 class SystemEvent(Event.Event):
 
     def __init__(self, eventhandler):
-        Event.Event.__init__(self, eventhandler)
+        Event.Event.__init__(self, eventhandler, "SystemEvent")
         self.__register__()
     
     def match(self, data):
@@ -87,16 +87,19 @@ __help__ = {
     'shutdown' : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Shuts down the bot safely.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'reload'   : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Reloads all plugins and loads all new plugins.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     },
     'rehash'   : {
         CONTEXT : Contexts.PRIVATE,
         DESC    : 'Reloads the configuration.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : []
     }
 }

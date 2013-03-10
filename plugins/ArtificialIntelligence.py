@@ -10,7 +10,7 @@ from core import CorePlugin, Event, HelpFactory, get_connection, util
 from core.util import Escapes
 from core.CorePlugin import Plugin
 from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS
+from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from urllib import urlopen
 from random import randint
 try:

@@ -72,7 +72,7 @@ class WolframAlpha(Plugin):
             assert self.identification.require_level(data, 1)
             data.target.message("%s[Wolfram|Cache]: %s objects cached." % (Escapes.LIGHT_BLUE, len(self.cache)))
             return
-        elif data.message == (0, "@wa-cache-clear") or data.message == (0, "wolfram-clearcache"):
+        elif data.message == (0, "@wa-cache-clear") or data.message == (0, "wolfram-cacheclear"):
             assert self.identification.require_level(data, 2)
             self.clean_cache()
             data.target.message("%s[Wolfram|Cache]: cache forcibly cleared." % (Escapes.LIGHT_BLUE))
@@ -132,7 +132,7 @@ class WolframAlpha(Plugin):
                 for title, pod in response:
                     try:
                         data.target.privmsg("%s%s%s%s" % (Escapes.BOLD, title, Escapes.BOLD, Escapes.NL))
-                        data.target.privmsg(" - %s%s%s" % (Escapes.LIGHT_BLUE, " ".join(pod).decode("utf-8", "ignore"), Escapes.NL))
+                        data.target.privmsg(" - %s%s%s" % (Escapes.LIGHT_BLUE, unicode(" ".join(pod)), Escapes.NL))
                     except (UnicodeEncodeError, LookupError) as er:
                         data.target.privmsg(" - %s%sUnicodeEncodeError: %s%s" % (Escapes.BOLD, Escapes.RED, er, Escapes.NL))
                         pass
@@ -161,16 +161,19 @@ __help__ = {
     '@wa'             : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Searches Wolfram|Alpha for a query.',
-        PARAMS  : '<query>'
+        PARAMS  : '<query>',
+        ALIASES : ['wolfram']
     },
     '@wa-cache'       : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Displays the number of entries held in the cache.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : ['wolfram-cache']
     },
     '@wa-cache-clear' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Clears the cache forcibly before the scheduled time.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : ['wolfram-cacheclear']
     }
 }

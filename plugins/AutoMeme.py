@@ -9,7 +9,7 @@ import os, logging, core, sys, traceback, re
 from core import CorePlugin, Event, HelpFactory, get_connection, util
 from core.util import Escapes as e
 from core.CorePlugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS
+from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from urllib import urlopen
 
 class AutoMeme(Plugin):
@@ -48,6 +48,7 @@ __help__ = {
     '@meme' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Pulls a meme from the autome.me website and displays it in the current channel.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : ['MEMEGET!']
     }
 }

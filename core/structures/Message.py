@@ -33,5 +33,17 @@ class Message(object):
     def contains(self, value):
         return value in self.to_s()
     
+    def has_index(self, index):
+        try:
+            if self.data.split()[index]:
+                return True
+            else:
+                return False
+        except (IndexError):
+            return False
+    
+    def raw(self):
+        return self.data
+    
     def to_s(self):
         return str(self.data)

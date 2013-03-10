@@ -93,7 +93,7 @@ class UrbanDictionary(Plugin):
             assert self.identification.require_level(data, 1)
             data.target.message("%s[UrbanDictionary]: %s objects cached." % (e.AQUA, len(self.cache)))
             return
-        elif data.message == (0, "@ud-cache-clear") or data.message == (0, "urbandictionary-clearcache"):
+        elif data.message == (0, "@ud-cache-clear") or data.message == (0, "urbandictionary-cacheclear"):
             assert self.identification.require_level(data, 1)
             self.clean_cache()
             data.target.message("%s[UrbanDictionary]: Cache forcibly cleared." % (e.LIGHT_BLUE))
@@ -163,16 +163,19 @@ __help__ = {
     '@ud'             : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Searches UrbanDictionary for a term.',
-        PARAMS  : '<term>'
+        PARAMS  : '<term>',
+        ALIASES : ['urbandictionary']
     },
     '@ud-cache'       : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Displays the number of entries held in the cache.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : ['urbandictionary-cache']
     },
     '@ud-cache-clear' : {
         CONTEXT : Contexts.PUBLIC,
         DESC    : 'Clears the cache forcibly before the scheduled time.',
-        PARAMS  : ''
+        PARAMS  : '',
+        ALIASES : ['urbandictionary-cacheclear']
     }
 }

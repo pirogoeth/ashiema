@@ -148,8 +148,10 @@ class Connection(object):
                 # process the data thats in the queue
                 try:
                     [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
-                except (QueueError):
+                except (AssertionError, QueueError):
                     pass
+                except (KeyboardInterrupt, SystemExit) as e:
+                    self.shutdown()
                 _cc += 1
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()

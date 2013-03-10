@@ -11,11 +11,13 @@ CONTEXT = "context"
 DESC = "desc"
 PARAMS = "params"
 ALIASES = "aliases"
+NAME = "name"
 
 class Contexts(object):
     
     PUBLIC  = "public"
     PRIVATE = "private"
+    BOTH = "both"
 
 class Filters(object):
 
@@ -30,9 +32,16 @@ class Filters(object):
             return True
         else:
             return False
+    
+    def _both(entry):
+        if entry[CONTEXT] is Contexts.BOTH:
+            return True
+        else:
+            return False
 
     PUBLIC = _public
     PRIVATE = _private
+    BOTH = _both
 
 class HelpFactory(object):
 
@@ -46,8 +55,10 @@ class HelpFactory(object):
         del self._help[plugin]
     
     def getHelpForPlugin(self, plugin):
+        if not self._help.__contains__(plugin):
+            yield None
         for key, entry in self._help[plugin].iteritems():
-            entry.update({'name' : key})
+            entry.update({NAME : key})
             yield entry
     
     def getHelp(self, filter_func = None):
@@ -55,29 +66,8 @@ class HelpFactory(object):
         
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
-                entry.update({'name' : key})
+                entry.update({NAME : key})
                 results.append(entry)
-        
-        for entry in filter(filter_func, results):
-            yield entry
-
-    def getHelpByFilter(self, filter_func):
-        results = []
-        
-        for plugin in self._help.keys():
-            for key, entry in self._help[plugin].iteritems():
-                entry.update({'name': key})
-                results.append(entry)
-        
-        for entry in filter(filter_func, results):
-            yield entry
-    
-    def getFilteredHelpForPlugin(self, plugin, filter_func):
-        results = []
-        
-        for key, entry in self._help[plugin].iteritems():
-            entry.update({'name': key})
-            results.append(entry)
         
         for entry in filter(filter_func, results):
             yield entry
@@ -87,7 +77,7 @@ class HelpFactory(object):
 
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
-                entry.update({'name' : key})
+                entry.update({NAME : key})
                 results.append(entry)
 
         for entry in filter(Filters.PUBLIC, results):
@@ -98,8 +88,19 @@ class HelpFactory(object):
 
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
-                entry.update({'name' : key})
+                entry.update({NAME : key})
                 results.append(entry)
 
         for entry in filter(Filters.PRIVATE, results):
+            yield entry
+    
+    def getDualContextHelp(self):
+        results = []
+        
+        for plugin in self._help.keys():
+            for key, entry in self._help[plugin].iteritems():
+                entry.update({NAME : key})
+                results.append(entry)
+        
+        for entry in filter(Filters.BOTH, results):
             yield entry
