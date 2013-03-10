@@ -6,6 +6,23 @@ IRC bot written in python with an event driven framework.
 Running The Bot
 ===============
 
+Before you can run your bot, you must do the following:
+
+```shell
+cd tools
+python ./makeuser.py
+```
+
+You will be presented with a prompt:
+
+```
+username: <your username>
+password: <your password>
+permission level: <0, 1, 2>
+```
+
+After you make your user account, you should start modifying your configurations!
+
 After modifying your example.conf and renaming it to whatever you may wish, you can run the bot simply by typing ```python ./ashiema.py <confname>``` into your console.  
 
 **NOTE**: I know for sure that this bot will work on Linux and BSD operating systems, but I have not the slightest clue if it will run on Windows.
