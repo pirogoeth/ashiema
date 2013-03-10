@@ -11,7 +11,7 @@ from DefaultEvents import DefaultEventChainloader
 class EventHandler(object):
 
     def __init__(self):
-        self.events = []
+        self.events = {}
         self._d_loaded = False
 
     def __repr__(self):
@@ -32,16 +32,21 @@ class EventHandler(object):
         """ gets the default events for usage """
         
         return self._dec.get_events()
+        
+    def get_events(self):
+        """ returns the events that have been loaded by the system. """
+        
+        return self.events
 
     def register(self, event):
         """ register an event in the handler """
         
-        self.events.append(event)
+        self.events.update({event.__get_name__(): event)
     
     def deregister(self, event):
         """ deregister an event from the handler """
         
-        self.events.remove(event)
+        self.events.pop(event.__get_name__())
     
     def deregister_all(self):
         """ deregisters all events """
@@ -52,7 +57,7 @@ class EventHandler(object):
         """ create a list of events that match the given data """
         
         e_map = []
-        for event in self.events:
+        for event in self.get_events().values():
             if event.match(data):
                 e_map.append(event)
             else: continue

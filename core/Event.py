@@ -10,8 +10,9 @@
 class Event(object):
     """ this class is to be inherited and not directly instantiated and run. """
     
-    def __init__(self, eventhandler):
+    def __init__(self, eventhandler, event_name):
         self.eventhandler = eventhandler
+        self.name = event_name
         self.callbacks = {}
         
         self.get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
@@ -35,6 +36,11 @@ class Event(object):
         """ returns the event handler """
         
         return self.eventhandler
+        
+    def __get_name__(self):
+        """ returns the identifiable name of the event. """
+        
+        return self.name
 
     def callback(self):
         """ registers a function to be run on the data. """

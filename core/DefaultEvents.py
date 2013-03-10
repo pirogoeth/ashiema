@@ -37,8 +37,8 @@ class DefaultEventChainloader(object):
 
 class BasicUserEvent(Event):
 
-    def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+    def __init__(self, eventhandler, event_name = "BasicUserEvent"):
+        Event.__init__(self, eventhandler, event_name)
         self.__register__()
     
     def match(self, data):
@@ -55,7 +55,7 @@ class BasicUserEvent(Event):
 class PluginsLoadedEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "PluginsLoadedEvent")
         self.__register__()
 
     def match(self, data = None):
@@ -68,7 +68,7 @@ class PluginsLoadedEvent(Event):
 class ModeChangeEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "ModeChangeEvent")
         self.__register__()
         self.commands = ['MODE', 'OMODE', 'UMODE']
     
@@ -87,7 +87,7 @@ class ModeChangeEvent(Event):
 class ErrorEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "ErrorEvent")
         self.__register__()
     
     def match(self, data):
@@ -102,7 +102,7 @@ class ErrorEvent(Event):
 class PMEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "PMEvent")
         self.__register__()
         self.commands = ['PRIVMSG']
 
@@ -120,9 +120,8 @@ class PMEvent(Event):
 class RFCEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "RFCEvent")
         self.__register__()
-        self.data = 000
     
     def match(self, data):
         try:
@@ -131,7 +130,6 @@ class RFCEvent(Event):
         except (ValueError): return False
 
     def run(self, data):
-        self.data = data.type.to_i()
         if data.type.to_i() == 001:
             # RPL_WELCOME
             logging.getLogger('ashiema').info('<- welcome received: %s' % (data.message))
@@ -160,7 +158,7 @@ class RFCEvent(Event):
 class MessageEvent(Event):
 
     def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler)
+        Event.__init__(self, eventhandler, "MessageEvent")
         self.__register__()
         self.commands = ['PRIVMSG']
 
@@ -178,7 +176,7 @@ class MessageEvent(Event):
 class UserJoinedEvent(BasicUserEvent):
 
     def __init__(self, eventhandler):
-        BasicUserEvent.__init__(self, eventhandler)
+        BasicUserEvent.__init__(self, eventhandler, "JoinEvent")
     
     def match(self, data):
         if str(data.type) == 'JOIN':
@@ -187,7 +185,7 @@ class UserJoinedEvent(BasicUserEvent):
 class UserPartedEvent(BasicUserEvent):
 
     def __init__(self, eventhandler):
-        BasicUserEvent.__init__(self, eventhandler)
+        BasicUserEvent.__init__(self, eventhandler, "PartEvent")
     
     def match(self, data):
         if str(data.type) == 'PART':
@@ -196,7 +194,7 @@ class UserPartedEvent(BasicUserEvent):
 class UserQuitEvent(BasicUserEvent):
 
     def __init__(self, eventhandler):
-        BasicUserEvent.__init__(self, eventhandler)
+        BasicUserEvent.__init__(self, eventhandler, "QuitEvent")
        
     def match(self, data):
         if str(data.type) == 'QUIT':
@@ -205,7 +203,7 @@ class UserQuitEvent(BasicUserEvent):
 class PingEvent(Event):
    
    def __init__(self, eventhandler):
-       Event.__init__(self, eventhandler)
+       Event.__init__(self, eventhandler, "PingEvent")
        self.__register__()
    
    def match(self, data):
