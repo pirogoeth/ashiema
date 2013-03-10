@@ -30,7 +30,7 @@ class HelpFactoryInterface(Plugin):
     
     def handler(self, data):
 
-        if data.message == (0, 'help'):
+        if ((data.message == (0, 'help') or data.message == (0, '@help')) and data.target.is_self()) or (data.message == (0, '@help') and not data.target.is_self()):
             if data.message.has_index(1): # there is an argument.
                 data.origin.notice("Help for %s%s%s." % (Escapes.BOLD, data.message[1], Escapes.BOLD))
                 for entry in self.helpfactory.getHelpForPlugin(data.message[1]):
@@ -56,7 +56,13 @@ __data__ = {
 
 __help__ = {
     'help'  : {
-        CONTEXT : Contexts.BOTH,
+        CONTEXT : Contexts.PRIVATE,
+        DESC    : 'Lists plugins to retrieve help for, or, if a plugin name is provided, help for all available commands will be shown.',
+        PARAMS  : '[plugin]',
+        ALIASES : ['@help']
+    },
+    '@help'  : {
+        CONTEXT : Contexts.PUBLIC,
         DESC    : 'Lists plugins to retrieve help for, or, if a plugin name is provided, help for all available commands will be shown.',
         PARAMS  : '[plugin]',
         ALIASES : []
