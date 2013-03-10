@@ -238,3 +238,22 @@ If you wish to contribute to this project, make sure your changes follow the fol
 If you wish to contribute long-term to the project (eg., repo contributor..), send an email to <pirogoeth@maio.me> noting what you want and tell me why you want to help :)
 
 If this readme is lacking any crucial information, file an issue stating what is wrong and I'll get right to fixing it.
+
+License
+=======
+
+ashiema: a lightweight, modular IRC bot written in python.
+Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
