@@ -42,7 +42,6 @@ Define your init and teardown methods.
 
     def __deinit__(self):
         ...
-
 ```
 
 **Note about needs_dir**: the ```needs_dir``` parameter can be set in your init method, and a directory will be created in plugins/ for you to store data into.
@@ -62,6 +61,19 @@ And to deregister:
 ```python
 self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
 ```
+
+Below your plugin class, **you MUST** add a ```__data__``` dictionary that provides information about the plugin, which looks like the following:
+
+```python
+__data__ = {
+    'name'      : 'SomePlugin',
+    'version'   : 'x.y',
+    'require'   : ['NameOfFirstRequiredPlugin', 'NameOfSecondRequiredPlugin', ...],
+    'main'      : PluginClassName
+}
+```
+
+The ```__data__``` dictionary **MUST** be at the bottom of your file below the class.
 
 Using Permissions
 =================
@@ -116,7 +128,8 @@ __help__ = {
         DESC    : 'Does something else.',
         PARAMS  : ''
     }
-}```
+}
+```
 
 Submitting Data To The HelpFactory
 ==================================
@@ -132,7 +145,8 @@ __help__ = {
         DESC    : 'Command description',
         PARMAS  : '<string> <describing> <all> [params]'
     }
-}```
+}
+```
 
 An example follows:
 
@@ -153,7 +167,8 @@ __help__ = {
         DESC    : 'Does something privately.',
         PARAMS  : ''
     }
-}```
+}
+```
 
 Catching Events
 ===============
