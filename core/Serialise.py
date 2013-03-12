@@ -42,3 +42,16 @@ class Serialise(object):
     
     def print_raw(self):
         print self._raw
+    
+    def get_raw(self):
+        return self._raw
+    
+    def respond_to_user(self, message, prefer_notice = True):
+        if self.target.is_self():
+            if prefer_notice:
+                self.origin.notice(message)
+            else:
+                self.origin.message(message)
+        else:
+            self.target.message(message)
+            
