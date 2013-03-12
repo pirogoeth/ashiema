@@ -1,4 +1,4 @@
-import os, sys, signal
+import os, logging, sys, signal
 
 # ashiema: a lightweight, modular IRC bot written in python.
 # Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
@@ -23,8 +23,8 @@ def fork():
             os.chdir(os.getcwd())
             os.umask(0)
         else:
-            print "\x0aforking as %d" % (pid)
-            print 'backgrounded from: %s\x0a' % (os.getcwd())
+            logging.getLogger('ashiema').debug("forking as %d" % (pid))
+            logging.getLogger('ashiema').debug("backgrounded from: %s" % (os.getcwd()))
             os._exit(0)
     else:
         os._exit(0)
