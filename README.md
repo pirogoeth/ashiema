@@ -226,14 +226,19 @@ class ExampleEvent(Event):
         self.__register__()
 
     def match(self, data):
-        """ This is where you should try and match the data given by the server, if that is what you're trying to do.  Otherwise, you can just **pass**. """
+        """ This is where you should try and match the data given by the server, if that is what you're trying to do.  
+            Otherwise, you can just **pass**. """
         
         pass
 
     def run(self, data):
         for callback in self.callbacks.values():
             callback(data)
+```
 
+If you are firing the event based on data retrieved in a handler:
+
+```python
 class Example(Plugin):
     
     def __init__(self, connection, eventhandler):
@@ -244,6 +249,21 @@ class Example(Plugin):
     def handler(self, data):
         if (caught_some_data):
             self.eventhandler.fire_once(self.example_event, (event_data))
+            ...
+```
+
+If all data is parsed through the connection data pipe, and you're waiting for feedback:
+
+```python
+class Example(Plugin):
+
+    def __init__(self, connection, eventhandler):
+        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        self.example_event = self.eventhandler.get_events()['ExampleEvent'].register(this.handler_function)
+        ...
+    
+    def handler_function(self, data):
+        if (...)
             ...
 ```
 
