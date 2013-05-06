@@ -1,6 +1,13 @@
 logs
 logs/*
 *.pyc
+*.save
 test.conf
+lightspike.conf
+mib.conf
 plugins/IdentificationPlugin/users.db
+plugins/IdentificationPlugin/persist.db
 plugins/ArtificialIntelligence/brain.db
+plugins/ArtificialIntelligence/brain.old
+core/Memoizer.py
+LICENSE.min

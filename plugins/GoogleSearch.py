@@ -57,6 +57,9 @@ class GoogleSearch(Plugin):
                 data.respond_to_user("[" + self.prefix + "Search]: You must provide a term to search!")
                 return
             if query in self.cache:
+                if self.cache[query] == (None, None):
+                    data.respond_to_user("[" + self.prefix + "Search]: No results could be found. Please refine your search terms.")
+                    return
                 title, url = self.cache[query]
                 # display result
                 data.respond_to_user("[" + self.prefix + "Search]: %s%s%s, %s" % (Escapes.BOLD, title, Escapes.BOLD, url))
@@ -78,8 +81,12 @@ class GoogleSearch(Plugin):
                 data.respond_to_user("[" + self.prefix + "Search]: An error occurred while searching!")
                 data.respond_to_user("[" + self.prefix + "Search]: Failed with code [" + str(code) + "]: " + error)
                 return
-            title = response['responseData']['results'][0]['titleNoFormatting']
-            url = response['responseData']['results'][0]['url']
+            try:
+                title = response['responseData']['results'][0]['titleNoFormatting']
+                url = response['responseData']['results'][0]['url']
+            except (Exception):
+                self.cache[query] = (None, None)
+                return self.handler(data)
             self.cache[query] = (title, url)
             # re-call myself, so that there's not as much duplicate code.
             return self.handler(data)
@@ -88,7 +95,8 @@ __data__ = {
     'name'      : 'GoogleSearch',
     'version'   : '1.0',
     'require'   : [],
-    'main'      : GoogleSearch
+    'main'      : GoogleSearch,
+    'events'    : []
 }
 
 __help__ = {

@@ -27,7 +27,7 @@ class SystemEvent(Event.Event):
         # 2 -> rehash
         logging.getLogger('ashiema').info('Waiting for plugins to finish up...')
         for callback in self.callbacks.values():
-            callback()
+            callback(data)
 
 class System(Plugin):
 
@@ -35,15 +35,15 @@ class System(Plugin):
 
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
-        self.eventhandler.get_default_events()['PMEvent'].register(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self.load_identification)
+        self.eventhandler.get_events()['PMEvent'].register(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.load_identification)
         
-        self.system_event = SystemEvent(eventhandler)
+        self.system_event = self.eventhandler.get_events()['SystemEvent']
         
     def __deinit__(self):
 
-        self.eventhandler.get_default_events()['PMEvent'].deregister(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].deregister(self.load_identification)
+        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.load_identification)
     
     def load_identification(self):
 
@@ -74,13 +74,14 @@ class System(Plugin):
             # System event code 2 -> rehash
             self.eventhandler.fire_once(self.system_event, (2,))
             get_connection().configuration.reload()
-            data.origin.message('rehash completed!')
+            data.origin.message('Rehash completed!')
 
 __data__ = {
-    'name'    : 'SystemFunctions',
+    'name'    : 'SystemPlugin',
     'version' : '1.0',
     'require' : ['IdentificationPlugin'],
-    'main'    : System
+    'main'    : System,
+    'events'  : [SystemEvent]
 }
 
 __help__ = {

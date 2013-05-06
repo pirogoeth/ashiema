@@ -51,7 +51,8 @@ __data__ = {
     'name'      : 'HelpFactoryInterface',
     'version'   : '1.0',
     'require'   : [],
-    'main'      : HelpFactoryInterface
+    'main'      : HelpFactoryInterface,
+    'events'    : []
 }
 
 __help__ = {

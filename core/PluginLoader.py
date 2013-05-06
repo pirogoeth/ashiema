@@ -81,7 +81,8 @@ class PluginLoader(object):
                     {
                         'version': source.__data__['version'],
                         'require': source.__data__['require'],
-                        'main': source.__data__['main']
+                        'main': source.__data__['main'],
+                        'events': (source.__data__['events'] or [])
                     }
                 }
             )
@@ -96,6 +97,11 @@ class PluginLoader(object):
         # initialise plugins
         unload = []
         if self.container:
+            # initialise events from plugins
+            for data in self.container.values():
+                for event in data['events']:
+                    event(self.eventhandler)
+            # initialise plugins
             for plugin, data in self.container.iteritems():
                 try:
                     self.loaded.update(

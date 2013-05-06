@@ -17,7 +17,9 @@ class IdentificationPlugin(Plugin):
 
         Plugin.__init__(self, connection, eventhandler, needs_dir = True)
         
-        self.eventhandler.get_default_events()['PMEvent'].register(self.handler)
+        self.eventhandler.get_events()['PMEvent'].register(self.handler)
+        self.eventhandler.get_events()['SystemEvent'].register(self.sys_handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.sys_handler)
         
         self.logins = {}
         self._opened = False
@@ -26,7 +28,9 @@ class IdentificationPlugin(Plugin):
         
     def __deinit__(self):
 
-        self.eventhandler.get_default_events()['PMEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['SystemEvent'].deregister(self.sys_handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.sys_handler)
         
         self.__close_shelve__()
     
@@ -41,14 +45,51 @@ class IdentificationPlugin(Plugin):
     
     def __close_shelve__(self):
 
-        assert self._opened, 'Shelf is not opened.'
+        assert self._opened, "Shelf is not opened."
         
         self.shelf.sync()
         self.shelf.close()
     
+    def __persist_logins__(self):
+    
+        assert self._opened, "Accounts not loaded."
+        
+        if len(self.logins) == 0:
+            pass
+        
+        try:
+            persistance_shelf = shelve.open(self.get_path() + "persist", protocol = 2, writeback = True)
+            persistance_shelf.update(self.logins)
+            persistance_shelf.sync()
+            persistance_shelf.close()
+        except Exception as e:
+            persistance_shelf = None
+            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+
+    def __depersist_logins__(self):
+    
+        assert self._opened, "Accounts not loaded."
+        
+        _path = self.get_path() + "persist.db"
+        
+        if not os.path.isfile(_path):
+            return
+        
+        try:
+            persistance_shelf = shelve.open(self.get_path() + "persist", protocol = 2, writeback = True)
+            self.logins.update(persistance_shelf)
+            persistance_shelf.close()
+        except Exception as e:
+            persistance_shelf = None
+            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+        finally:
+            del persistance_shelf
+            if os.path.isfile(_path):
+                os.remove(_path)
+
     def __check_user__(self, username):
 
-        assert self._opened, 'Shelf is not opened.'
+        assert self._opened, "Shelf is not opened."
         
         return username in self.shelf
     
@@ -73,6 +114,18 @@ class IdentificationPlugin(Plugin):
         elif level_r >= level:
             return True
     
+    def sys_handler(self, sys_event_code = None):
+    
+        if isinstance(sys_event_code, tuple):
+            code = sys_event_code[0]
+        elif sys_event_code is None:
+            code = None
+
+        if code is 0:
+            self.__persist_logins__()
+        elif code is None:
+            self.__depersist_logins__()    
+
     def handler(self, data):
 
         if data.message == (0, 'login'):
@@ -113,8 +166,7 @@ class IdentificationPlugin(Plugin):
             if len(password) >= 8:
                 self.shelf.update(
                     {
-                        username:
-                        {
+                        username: {
                                 'password' : md5(password),
                                 'level'    : 0
                         }
@@ -160,8 +212,9 @@ class IdentificationPlugin(Plugin):
 __data__ = {
     'name'     : 'IdentificationPlugin',
     'version'  : '1.0',
-    'require'  : [],
-    'main'     : IdentificationPlugin
+    'require'  : ['SystemPlugin'],
+    'main'     : IdentificationPlugin,
+    'events'   : []
 }
 
 __help__ = {

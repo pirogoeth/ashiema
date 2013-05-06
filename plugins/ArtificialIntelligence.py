@@ -31,8 +31,8 @@ class ArtificialIntelligence(Plugin):
         self.brain = megahal.MegaHAL(brainfile = self.get_path() + "/brain")
         self.scheduler = connection.scheduler
         
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self._load_identification)
         
         self.ignored = []
         # chance (out of 100) that the AI will respond (per-channel).
@@ -50,8 +50,8 @@ class ArtificialIntelligence(Plugin):
     
     def __deinit__(self):
     
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].deregister(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self._load_identification)
     
         self.scheduler.unschedule_job(
             self.connection.tasks.pop(
@@ -127,7 +127,8 @@ __data__ = {
     'name'    : 'ArtificialIntelligence',
     'version' : '1.0',
     'require' : ['IdentificationPlugin'],
-    'main'    : ArtificialIntelligence
+    'main'    : ArtificialIntelligence,
+    'events'  : []
 }
 
 __help__ = {

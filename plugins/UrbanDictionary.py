@@ -57,7 +57,7 @@ class UrbanDictionary(Plugin):
             }
         )
         
-        self.url = "http://www.urbandictionary.com/tooltip.php?"
+        self.url = "http://www.urbandictionary.com/define.php?"
     
     def __deinit__(self):
     
@@ -109,11 +109,12 @@ class UrbanDictionary(Plugin):
             )
         ))
         _data = u'%s' % (_data.read().replace('\n', '\\n'))
-        _data = json.loads(_data)['string']
+        logging.getLogger("ashiema").error(_data)
+        # _data = json.loads(_data)['string']
         _data = unescape(_data)
         if "isn't defined yet" in _data:
             return (term, term + " is not defined yet.")
-        content = re.compile(r"<div>(.+?)<\/div><div>(.+?)<\/div>")
+        content = re.compile(r'<div class="definition">(.+?)<\/div><div class="example">(.+?)<\/div>')
         escapes = re.compile(r"[\r\n\t]")
         escaped = escapes.sub('', _data.replace("<br/>", '').replace('&quot;', '"').strip())
         try:
@@ -156,7 +157,8 @@ __data__ = {
     'name'      : "UrbanDictionary",
     'version'   : "1.0",
     'require'   : ["IdentificationPlugin"],
-    'main'      : UrbanDictionary
+    'main'      : UrbanDictionary,
+    'events'    : []
 }
 
 __help__ = {

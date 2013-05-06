@@ -14,10 +14,10 @@ class ExamplePlugin(Plugin):
     def __init__(self, connection, eventhandler):
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         
     def __deinit__(self):
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
         
     def handler(self, data):
         if data.message == (0, 'testing'):
@@ -27,5 +27,6 @@ __data__ = {
     'name'     : 'ExamplePlugin',
     'version'  : '1.0',
     'require'  : [],
-    'main'     : ExamplePlugin
+    'main'     : ExamplePlugin,
+    'events'   : []
 }

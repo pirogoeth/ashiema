@@ -24,11 +24,11 @@ class YoutubeScraper(Plugin):
         self.format = "[%sYou%sTube%s] %s&t%s - %s&a%s" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
         self.apiurl = "http://gdata.youtube.com/feeds/api/videos/%s?v=2&alt=jsonc"
         
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         
     def __deinit__(self):
     
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
     
     def get_simple_time(self, duration):
     
@@ -50,5 +50,6 @@ __data__ = {
     'name'     : "YoutubeScraper",
     'version'  : "1.0",
     'require'  : [],
-    'main'     : YoutubeScraper
+    'main'     : YoutubeScraper,
+    'events'   : []
 }

@@ -18,13 +18,13 @@ class AutoMeme(Plugin):
     
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         
         self.api_url = "http://api.autome.me/text?lines=1"
         
     def __deinit__(self):
     
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
     
     def _retrieve(self):
  
@@ -41,7 +41,8 @@ __data__ = {
     'name'      : "AutoMeme",
     'version'   : "1.0",
     'require'   : [],
-    'main'      : AutoMeme
+    'main'      : AutoMeme,
+    'events'    : []
 }
 
 __help__ = {

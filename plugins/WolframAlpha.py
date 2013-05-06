@@ -154,7 +154,8 @@ __data__ = {
     'name'    : "Wolfram|Alpha",
     'version' : "1.0",
     'require' : ["IdentificationPlugin"],
-    'main'    : WolframAlpha
+    'main'    : WolframAlpha,
+    'events'  : []
 }
 
 __help__ = {
