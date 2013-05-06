@@ -86,7 +86,8 @@ __data__ = {
     'name'      : 'SomePlugin',
     'version'   : 'x.y',
     'require'   : ['NameOfFirstRequiredPlugin', 'NameOfSecondRequiredPlugin', ...],
-    'main'      : PluginClassName
+    'main'      : PluginClassName,
+    'events'    : [LocalEventClass1, LocalEventClass2, ...]
 }
 ```
 
@@ -238,13 +239,17 @@ class Example(Plugin):
     
     def __init__(self, connection, eventhandler):
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
-        self.example_event = ExampleEvent()
         ...
 
     def handler(self, data):
         if (caught_some_data):
             self.eventhandler.fire_once(self.example_event, (event_data))
             ...
+
+__data__ = {
+    ...
+    'events'    : [ExampleEvent]
+}
 ```
 
 Contributing
