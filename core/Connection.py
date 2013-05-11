@@ -100,7 +100,7 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        self._queue.append(data + '\r\n')
+        self._queue.append(data.encode("UTF-8") + '\r\n')
     
     def _raw_send(self, data):
         """ allows sending of raw data directly to the uplink 
@@ -148,7 +148,7 @@ class Connection(object):
                 # process the data thats in the queue
                 try:
                     [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
-                except (AssertionError, QueueError):
+                except (AssertionError, QueueError) as e:
                     pass
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
