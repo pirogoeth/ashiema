@@ -106,10 +106,9 @@ class WolframAlpha(Plugin):
             )
         ))
        
-    def parseWolframResponse(self, response, redirected = False, results = None, sources = None):
+    def parseWolframResponse(self, response, redirected = False, results = None):
        
         results = results if results is not None else []
-        sources = sources if sources is not None else []
         tree = xtree.fromstring(response.read())
         recalculate = tree.get('recalculate') if tree.get('recalculate') else False
         success = tree.get('success')
@@ -122,7 +121,7 @@ class WolframAlpha(Plugin):
                     except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e: continue
             if recalculate is not False:
                 if not redirected:
-                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results, sources = sources)
+                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results)
                 elif results:
                     return True, results
                 else:
