@@ -6,8 +6,8 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, core, sys, logging, traceback
-from core import get_connection, md5, CorePlugin, Event, HelpFactory
-from core.CorePlugin import Plugin
+from core import get_connection, md5, Plugin, Event, HelpFactory
+from core.Plugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
 

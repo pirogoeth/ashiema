@@ -6,8 +6,8 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import core, logging
-from core import CorePlugin
-from core.CorePlugin import Plugin
+from core import Plugin
+from core.Plugin import Plugin
 
 class ExamplePlugin(Plugin):
 

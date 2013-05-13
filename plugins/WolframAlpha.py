@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: latin-1 -*-
 
 # ashiema: a lightweight, modular IRC bot written in python.
 # Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
@@ -6,14 +7,17 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core
-from core import CorePlugin, Event, get_connection, util
+from core import Plugin, Event, get_connection, util
 from core.util import Escapes
-from core.CorePlugin import Plugin
+from core.Plugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
+from core.util.texttable import TextTable
 from urllib import urlopen, urlencode
 import xml.etree.cElementTree as xtree
 import sys, traceback
+
+from contextlib import closing
 
 class WolframAlpha(Plugin):
 
@@ -50,10 +54,17 @@ class WolframAlpha(Plugin):
         self.connection.tasks.pop(
             "WolframAlpha__scheduled_cache_clean"
         )
-
+    
     def _load_identification(self):
        
         self.identification = self.connection.pluginloader.get_plugin("IdentificationPlugin")
+    
+    def _process_result_block_(self, data):
+    
+        data = data.strip('| ')
+        data = data.decode('UTF-8', 'ignore')
+        data = data.encode('UTF-8')
+        return data
    
     def clean_cache(self):
        
@@ -63,8 +74,11 @@ class WolframAlpha(Plugin):
        
         if data.message == (0, "@wa") or data.message == (0, "wolfram"):
             try:
-                query = " ".join(data.message[1:])
-            except (IndexError):
+                if len(data.message[1:]) > 1:
+                    query = " ".join(data.message[1:])
+                else:
+                    query = data.message[1]
+            except (IndexError) as e:
                 data.target.message("%s[Wolfram|Alpha]: %sPlease provide a query to search." % (Escapes.LIGHT_BLUE, Escapes.BOLD))
                 return
             self.beginWolframQuery(data, query)
@@ -75,7 +89,7 @@ class WolframAlpha(Plugin):
         elif data.message == (0, "@wa-cache-clear") or data.message == (0, "wolfram-cacheclear"):
             assert self.identification.require_level(data, 2)
             self.clean_cache()
-            data.target.message("%s[Wolfram|Cache]: cache forcibly cleared." % (Escapes.LIGHT_BLUE))
+            data.target.message("%s[Wolfram|Cache]: Cache forcibly cleared." % (Escapes.LIGHT_BLUE))
             return
    
     def search(self, query, format = ('plaintext',)):
@@ -92,9 +106,10 @@ class WolframAlpha(Plugin):
             )
         ))
        
-    def parseWolframResponse(self, response, redirected = False, results = None):
+    def parseWolframResponse(self, response, redirected = False, results = None, sources = None):
        
         results = results if results is not None else []
+        sources = sources if sources is not None else []
         tree = xtree.fromstring(response.read())
         recalculate = tree.get('recalculate') if tree.get('recalculate') else False
         success = tree.get('success')
@@ -103,10 +118,11 @@ class WolframAlpha(Plugin):
                 title = pod.get('title')
                 plaintext = pod.find('subpod/plaintext')
                 if plaintext is not None and plaintext.text:
-                    results.append((title, plaintext.text.split('\n')))
+                    try: results.append([title, [self._process_result_block_(text) for text in plaintext.text.split('\n')]])
+                    except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e: continue
             if recalculate is not False:
                 if not redirected:
-                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results)
+                    return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results, sources = sources)
                 elif results:
                     return True, results
                 else:
@@ -129,13 +145,31 @@ class WolframAlpha(Plugin):
                     query: response
                 })
             if have_results:
-                for title, pod in response:
-                    try:
-                        data.target.privmsg("%s%s%s%s" % (Escapes.BOLD, title, Escapes.BOLD, Escapes.NL))
-                        data.target.privmsg(" - %s%s%s" % (Escapes.LIGHT_BLUE, unicode(" ".join(pod)), Escapes.NL))
-                    except (UnicodeEncodeError, LookupError) as er:
-                        data.target.privmsg(" - %s%sUnicodeEncodeError: %s%s" % (Escapes.BOLD, Escapes.RED, er, Escapes.NL))
-                        pass
+                # process resulsts
+                header_pod = response.pop(0)
+                result_tables = [TextTable() for pod in response]
+                pod_data = [pod[1] for pod in response]
+                print result_tables
+                print header_pod
+                print response
+                result_tables[0].header = header_pod[1][0].title()
+                i = 0
+                while i < len(result_tables):
+                    table = result_tables[i]
+                    table.add_col_names([response[i][0]])
+                    for item in response[i][1]:
+                        table.add_row([item])
+                    i += 1
+                try:
+                    data.target.privmsg("    ")
+                    for table in result_tables:
+                        for line in str(table).split('\n'):
+                            data.target.privmsg(line)
+                        data.target.privmsg("    ")
+                except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e:
+                    data.target.privmsg(" - %s%sCould not decode results.%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL))
+                    [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+                    return
             elif not have_results:
                 if len(response) == 0:
                     data.target.privmsg(" - %s%sNo results found, try a different keyword.%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL))
@@ -146,7 +180,8 @@ class WolframAlpha(Plugin):
             [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
             return
         except (IndexError) as e:
-            data.target.message("%s[Wolfram|Alpha]: %sPlease provide a query to search." % (Escapes.LIGHT_BLUE, Escapes.BOLD))
+            data.target.message("%s[Wolfram|Alpha]: %sError parsing results." % (Escapes.LIGHT_BLUE, Escapes.BOLD))
+            [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
             return
         except: raise
 
