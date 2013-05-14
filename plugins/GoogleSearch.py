@@ -7,7 +7,7 @@
 
 import os, logging, core, sys, traceback, re, json, htmlentitydefs
 from core import Plugin, Event, get_connection, util
-from core.util import Escapes
+from core.util import Escapes, unescape
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
@@ -82,7 +82,7 @@ class GoogleSearch(Plugin):
                 data.respond_to_user("[" + self.prefix + "Search]: Failed with code [" + str(code) + "]: " + error)
                 return
             try:
-                title = response['responseData']['results'][0]['titleNoFormatting']
+                title = unescape(response['responseData']['results'][0]['titleNoFormatting'])
                 url = response['responseData']['results'][0]['url']
             except (Exception):
                 self.cache[query] = (None, None)

@@ -16,7 +16,8 @@ class Plugin(object):
         self.connection = connection
         self.eventhandler = eventhandler
         
-        self.path = os.getcwd() + "/plugins/" + type(self).__name__ + "/"
+        self.name = type(self).__name__
+        self.path = os.getcwd() + "/plugins/" + self.name + "/"
         
         # set up the plugins directory, if it doesn't exist.
         if not os.path.exists(self.path) and needs_dir:
@@ -35,6 +36,18 @@ class Plugin(object):
         """ returns the connection object. """
         
         return self.connection
+
+    def get_configuration(self):
+        """ returns the system configuration object. """
+
+        return self.connection.configuration
+
+    def get_plugin_configuration(self):
+        """ returns the configuration dictionary from the system configuration for this
+            specific plugin. """
+
+        plugin_dict = self.get_configuration().get_category(self.name)
+        return plugin_dict if plugin_dict is not None else {}
     
     def get_eventhandler(self):
         """ returns the eventhandler object """
@@ -44,4 +57,4 @@ class Plugin(object):
     def get_path(self):
         """ returns the plugin directory path. """
         
-        return self.path
+        return self.path if self.needs_dir is True else ''

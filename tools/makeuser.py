@@ -18,8 +18,8 @@ m.update(password)
 del password
 password = m.hexdigest()
 
-if level not in xrange(0, 4):
-    print "incorrect permission level. must be between 0 and 3"
+if level not in xrange(0, 3):
+    print "incorrect permission level. must be between 0 and 2"
     exit()
 
 user = {
