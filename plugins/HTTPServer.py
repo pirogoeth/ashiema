@@ -14,13 +14,101 @@ from cgi import parse_qs, escape
 from wsgiref.simple_server import make_server
 
 class HTTPServer(Plugin):
+
+    """ This is an HTTP server using WSGI and custom middlewares to provide a web interface for running instances of the bot.
+        Each instance will have it's own HTTP server, if enabled, and each plugin that is loaded into the bot is allowed to 
+        allocate a path on the server to server it's own content, such as status, a generic (or comprehensive, plugin developer's choice...) web interface,
+        a configuration interface, or even a remote API for fetching data. Each plugin MAY allocate more than one route, but for each route
+        that is allocated, the plugin must have a corresponding HTTPRequestHandler implemented.
+
+        For the HTTP server to be set up correctly, the bot administrator must add a block to the server configuration with the following structure:
+
+            HTTPServer {
+                bind_host = 'localhost' # either localhost or another interface, must provide the IP of the interface to bind to..
+                bind_port = 8000 # must be available AND must be > 1024 if not running as root.
+                resource_dir = '/public' # directory inside the HTTPServer's plugin directory where static resources will be served from.
+                resource_path = '/public' # path that +resource_dir+ can be accessed from.
+            }
+
+        Path allocation will be handled by this plugin automatically after all HTTPRequestHandlers are registered.
+    """
+
+    def __init__(self, connection, eventhandler):
+
+        Plugin.__init__(self, connection, eventhandler, needs_dir = True)
+
+        self.config = self.get_plugin_configuration()
+        if len(self.config) == 0:
+            raise Exception("You must configure options for the HTTP server in your server config!")
+
+        self.request_handlers = {}
+        self.running = False
+
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+    
+    def __deinit__(self):
+        
+        if self.running:
+            self.__stop()
+        
+        for handler in self.request_handlers.values():
+            handler.shutdown()
+        
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+    
+    def __get_handler_name__(self, handler):
+        
+        return type(handler).__name__
+    
+    def __start(self):
+        
+        if self.running:
+            return
+        
+        bind_host = self.config['bind_host']
+        bind_port = self.config['bind_port']
+        resource_dir = self.config['resource_dir']
+    
+    def __stop(self):
+        
+        if not self.running:
+            return
+    
+    def register_handler(self, handler):
+        
+        self.request_handlers.update({ self.__get_handler_name__(handler): handler })
+    
+    def deregister_handler(self, handler):
+        
+        self.request_handlers.remove(self.__get_handler_name__(handler))
+        
+    def server_application(self, environment, start_response):
+        
+        pass
+
+class HTTPRequestHandler(object):
     pass
 
-class HTTPResponseHandler(object):
-    pass
-
-class HTTPResponseEvent(Event):
-    pass
+class HTTPDInitEvent(Event):
+    
+    """ This event is fired when the HTTPD is about to initialise.
+        This is used to let plugins know when to register their HTTPRequestHandlers so that all requests will be ready
+        on-time.
+    """
+    
+    def __init__(self, eventhandler):
+        
+        Event.__init__(self, eventhandler, "HTTPDInitEvent")
+        self.__register__()
+        
+    def match(self, data):
+        
+        pass
+    
+    def run(self, data):
+        
+        for callback in self.callbacks.values():
+            callback(data)
 
 class Templating(object):
 
@@ -55,7 +143,7 @@ class Templating(object):
                  globals_dict = {},
                  exc_handle = None):
 
-        # regexes for matching template statements        
+        # regexes for matching template statements
         self.interpol_regex = interpolation_regex
         self.block_regex = block_regex
         
@@ -82,7 +170,7 @@ class Templating(object):
             'block_indent_size'     : 2, # size of the content indent inside blocks
             'block_char'            : '=', # character used to mark beginning of a block, same that is given in the regex
             'debugging'             : False, # do i print debugging information?
-            'input'                 : sys.stdin, # alternate input if `block` is not given to +parse()+
+            'input'                 : sys.stdin, # alternate input if  is not given to +parse()+
             'output'                : sys.stdout # output for parsed data
         }
     
@@ -159,3 +247,11 @@ class Templating(object):
         self.locals['_block'] = block
         
         self._parseblock_()
+
+__data__ = {
+    'name'      : 'HTTPServer',
+    'version'   : '1.0',
+    'require'   : ['IdentificationPlugin'],
+    'main'      : HTTPServer,
+    'events'    : [HTTPDInitEvent]
+}
