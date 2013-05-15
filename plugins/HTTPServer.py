@@ -52,6 +52,10 @@ class HTTPServer(Plugin):
             raise Exception("You must configure options for the HTTP server in your server config!")
 
         self.resource_path = self.get_path() + self.config['resource_path']
+        self.resource_route = self.config['resource_route']
+        
+        if self.resource_route[0] == '/':
+            self.resource_route = self.resource_route[1:]
         
         if not os.path.exists(self.resource_path):
             try:
@@ -64,6 +68,8 @@ class HTTPServer(Plugin):
         self.__thread = None
         
         self.__load_layers()
+
+        self.__register_resource_handler()
 
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
@@ -99,7 +105,7 @@ class HTTPServer(Plugin):
     
     def __start_serve(self, host, port):
 
-        server = make_server(host, port, self.server_application)
+        server = make_server(host, port, self.__router)
         while HTTPServer.running:
             # sleep so we don't lock up CPU
             time.sleep(0.0025)
@@ -120,8 +126,59 @@ class HTTPServer(Plugin):
     
         # load the exception layer
         dev_mode = False if self.config['development'] == 'False' else True
-        self.server_application = ExceptionLayer(self.server_application, development = dev_mode, exc_template = self.get_path() + "exception.thtml")
+        self.__router = ExceptionLayer(self.__router, development = dev_mode, exc_template = self.get_path() + "exception.thtml")
+
+    def __router(self, environment, start_response):
+        
+        request_path = environment.get('PATH_INFO', '').lstrip('/')
+
+        for handler in self.request_handlers.values():
+            match = re.search(handler.get_raw_route(), path)
+            if match is not None:
+                environment['ROUTE_PARAMS'] = match.groups()
+                return handler(environment, start_response)
+
+        return self.__not_found(environment, start_response)
     
+    def __not_found(self, environment, start_response):
+        
+        def render_404_template():
+            rendered = StringIO()
+            with closing(open(self.get_path() + '404.thtml', 'r')) as template:
+                try:
+                    start_response('404 NOT FOUND', [
+                                    ('Content-Type', 'text/html')])
+                except: pass
+                self.templater.update_globals({
+                    'path'          : environment.get('PATH_INFO', ''),
+                    'env'           : environment
+                })
+                self.templater.options()['input'] = template
+                self.templater.options()['output'] = rendered
+                self.templater.parse()
+            return rendered
+            
+        for line in render_404_template().getvalue().split('\n'):
+            yield line
+    
+    def __register_resource_handler(self):
+        """ registers the statics handler for +resource_path+. """
+        
+        class HTTPResourceHandler(HTTPRequestHandler):
+            
+            def __init__(self, plugin):
+                
+                HTTPRequestHandler.__init__(self, plugin)
+                
+                self.route = plugin.resource_route + "/?(.+)?$"
+            
+            def __call__(self, environment, start_response):
+                
+                return [environment['ROUTE_PARAMS']]
+        
+        resource_handler = HTTPResourceHandler(self)
+        resource_handler.register()
+
     def handler(self, data):
     
         pass
@@ -138,18 +195,6 @@ class HTTPServer(Plugin):
     def deregister_handler(self, handler):
         
         self.request_handlers.remove(handler.get_name())
-        
-    def server_application(self, environment, start_response):
-        
-        request_path = environment.get('PATH_INFO', '').lstrip('/')
-
-        for handler in self.request_handlers.values():
-            match = re.search(handler.get_raw_route(), path)
-            if match is not None:
-                environment['ROUTE_PARAMS'] = match.groups()
-                return handler(environment, start_response)
-
-        return not_found(environment, start_response)
 
 class HTTPRequestHandler(object):
 
