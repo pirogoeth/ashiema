@@ -76,6 +76,8 @@ class EventHandler(object):
                 [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
 
     def fire_once(self, event, data):
+        """ This method is DANGEROUS! """
+        
         try:
             event.run(data)
         except AssertionError, e:

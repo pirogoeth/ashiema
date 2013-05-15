@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <title>An exception has occurred...</title>
+  </head>
+  <body>
+    <strong>%{ type.__name__ }</strong>
+    <p>%{ value }</p>
+    <br><br>
+    <pre>
+    = for line in traceback
+      %{ line }<br>
+    </pre>
+  </body>
+</html>

@@ -121,7 +121,7 @@ class PluginLoader(object):
                     self.log.error('%s failed to load and has been unloaded.' % (plugin))
             self.log.info('all plugins have been loaded.')
             # run the PluginsLoadedEvent
-            get_connection()._evh.get_default_events()['PluginsLoadedEvent'].run()
+            get_connection()._evh.fire_once(get_connection()._evh.get_events()['PluginsLoadedEvent'].run(), ())
         elif not self.container: self.log.info('no plugins to load.')
     
     def reload(self):

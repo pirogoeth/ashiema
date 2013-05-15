@@ -5,12 +5,17 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, re, cgi, wsgiref
+import os, sys, re, cgi, wsgiref, errno, time, StringIO
 from core import Plugin, Event, get_connection, util
 from core.util import Escapes, unescape
+from core.Event import Event
 from core.Plugin import Plugin
 from contextlib import closing
 from cgi import parse_qs, escape
+from sys import exc_info
+from traceback import format_tb
+from StringIO import StringIO
+from multiprocessing import Process
 from wsgiref.simple_server import make_server
 
 class HTTPServer(Plugin):
@@ -24,10 +29,12 @@ class HTTPServer(Plugin):
         For the HTTP server to be set up correctly, the bot administrator must add a block to the server configuration with the following structure:
 
             HTTPServer {
-                bind_host = 'localhost' # either localhost or another interface, must provide the IP of the interface to bind to..
+                bind_host = localhost # either localhost or another interface, must provide the IP of the interface to bind to..
                 bind_port = 8000 # must be available AND must be > 1024 if not running as root.
-                resource_dir = '/public' # directory inside the HTTPServer's plugin directory where static resources will be served from.
-                resource_path = '/public' # path that +resource_dir+ can be accessed from.
+                autostart = False # whether we start immediately past init or not.
+                resource_path = /public # directory inside the HTTPServer's plugin directory where static resources will be served from.
+                resource_route = /public # path that +resource_dir+ can be accessed from.
+                development = False # mode that the server will run in. true is production, false is development.
             }
 
         Path allocation will be handled by this plugin automatically after all HTTPRequestHandlers are registered.
@@ -37,78 +44,207 @@ class HTTPServer(Plugin):
 
         Plugin.__init__(self, connection, eventhandler, needs_dir = True)
 
+        HTTPServer.running = False
+
         self.config = self.get_plugin_configuration()
+        
         if len(self.config) == 0:
             raise Exception("You must configure options for the HTTP server in your server config!")
 
+        self.resource_path = self.get_path() + self.config['resource_path']
+        
+        if not os.path.exists(self.resource_path):
+            try:
+                os.makedirs(self.resource_path)
+            except (OSError) as e:
+                if e.errno != errno.EEXIST:
+                    raise
+        
         self.request_handlers = {}
-        self.running = False
+        self.__thread = None
+        
+        self.__load_layers()
 
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-    
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
+
     def __deinit__(self):
         
-        if self.running:
+        if HTTPServer.running:
             self.__stop()
         
         for handler in self.request_handlers.values():
             handler.shutdown()
         
         self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-    
-    def __get_handler_name__(self, handler):
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__on_plugins_loaded)
+
+    def __on_plugins_loaded(self):
         
-        return type(handler).__name__
+        if self.config['autostart']:
+            self.__start()
     
     def __start(self):
         
-        if self.running:
+        if HTTPServer.running:
             return
         
         bind_host = self.config['bind_host']
-        bind_port = self.config['bind_port']
-        resource_dir = self.config['resource_dir']
+        bind_port = int(self.config['bind_port'])
+        
+        HTTPServer.running = True
+        
+        self.__process = Process(target = self.__start_serve, args = (bind_host, bind_port,))
+        self.__process.start()
     
+    def __start_serve(self, host, port):
+
+        server = make_server(host, port, self.server_application)
+        while HTTPServer.running:
+            # sleep so we don't lock up CPU
+            time.sleep(0.0025)
+            # handle a request
+            server.handle_request()
+        print "Shutting down."
+
     def __stop(self):
         
-        if not self.running:
+        if not HTTPServer.running:
             return
+        
+        HTTPServer.running = False
+
+        self.__process.terminate()
+    
+    def __load_layers(self):
+    
+        # load the exception layer
+        dev_mode = False if self.config['development'] == 'False' else True
+        self.server_application = ExceptionLayer(self.server_application, development = dev_mode, exc_template = self.get_path() + "exception.thtml")
+    
+    def handler(self, data):
+    
+        pass
     
     def register_handler(self, handler):
         
-        self.request_handlers.update({ self.__get_handler_name__(handler): handler })
+        for reg_handler in self.request_handlers.values():
+            if handler.get_raw_route() == reg_handler.get_raw_route():
+                logging.getLogger('ashiema').error("HTTPRequestHandler [" + handler.get_name() + "] tried to register the same HTTP route as handler [" + reg_handler.get_name() + "]!")
+                return
+
+        self.request_handlers.update({ handler.get_name(): handler })
     
     def deregister_handler(self, handler):
         
-        self.request_handlers.remove(self.__get_handler_name__(handler))
+        self.request_handlers.remove(handler.get_name())
         
     def server_application(self, environment, start_response):
         
-        pass
+        request_path = environment.get('PATH_INFO', '').lstrip('/')
+
+        for handler in self.request_handlers.values():
+            match = re.search(handler.get_raw_route(), path)
+            if match is not None:
+                environment['ROUTE_PARAMS'] = match.groups()
+                return handler(environment, start_response)
+
+        return not_found(environment, start_response)
 
 class HTTPRequestHandler(object):
-    pass
 
-class HTTPDInitEvent(Event):
-    
-    """ This event is fired when the HTTPD is about to initialise.
-        This is used to let plugins know when to register their HTTPRequestHandlers so that all requests will be ready
-        on-time.
+    """ This is a handler that provides the response to an HTTP request.
+        Each request handler is bound to a single route, where the route is a regular
+        expression.
     """
     
-    def __init__(self, eventhandler):
-        
-        Event.__init__(self, eventhandler, "HTTPDInitEvent")
-        self.__register__()
-        
-    def match(self, data):
-        
-        pass
+    def __init__(self, plugin):
     
-    def run(self, data):
+        self.name = type(self).__name__
+        self.plugin = plugin
+        self.templater = Templating()
+        self.route = self.route if self.route else (self.name + r'/?$')
+        self.response_codes = {
+            'OK'                    : "200 OK",
+            'BAD_REQUEST'           : "400 BAD REQUEST",
+            'UNAUTHORIZED'          : "401 UNAUTHORIZED",
+            'FORBIDDEN'             : "403 FORBIDDEN",
+            'NOT_FOUND'             : "404 NOT FOUND",
+            'TEAPOT'                : "418 I'M A TEAPOT",
+            'SERVER_ERROR'          : "500 INTERNAL SERVER ERROR",
+            'NOT_IMPLEMENTED'       : "501 NOT IMPLEMENTED"
+        }
+    
+    def get_name(self):
+
+        return self.name
+
+    def register(self):
         
-        for callback in self.callbacks.values():
-            callback(data)
+        self.plugin.get_plugin('HTTPServer').register_handler(self)
+    
+    def deregister(self):
+    
+        self.plugin.get_plugin('HTTPServer').deregister_handler(self)
+    
+    def get_route(self):
+    
+        return re.compile(self.route)
+    
+    def get_raw_route(self):
+    
+        return self.route
+
+class ExceptionLayer(object):
+
+    """ A layer that wraps the application server and catches exceptions and displays them, can be filtered between production and development. """
+    
+    def __init__(self, application, development = False, exc_template = "exception.thtml"):
+    
+        self.application = application
+        self.development = development
+        self.templater = Templating()
+        self.exception_template = exc_template
+    
+    def __call__(self, environment, start_response):
+
+        def render_exception_template():
+            rendered = StringIO()
+            with closing(open(self.exception_template, 'r')) as template:
+                try:
+                    start_response('500 INTERNAL SERVER ERROR', [
+                                    ('Content-Type', 'text/html')])
+                except: pass
+                self.templater.update_globals({
+                    'type'      : type,
+                    'value'     : value,
+                    'traceback' : traceback
+                })
+                self.templater.options()['input'] = template
+                self.templater.options()['output'] = rendered
+                self.templater.parse()
+            return rendered
+
+        response = None
+        try:
+            response = self.application(environment, start_response)
+            for line in response:
+                yield line
+        except:
+            type, value, trace = exc_info()
+            traceback = ['An error occurred while serving your request:']
+            if self.development:
+                traceback += ['','Traceback (most recent call last):']
+                traceback += format_tb(trace)
+            traceback.append('%s: %s' % (type.__name__, value))
+            try:
+                for line in render_exception_template().getvalue().split('\n'):
+                    yield line
+            except:
+                for line in render_exception_template().getvalue().split('\n'):
+                    yield line
+        if hasattr(response, 'close'):
+            response.close()
 
 class Templating(object):
 
@@ -168,7 +304,7 @@ class Templating(object):
         self.__options = {
             'indent_type'           : 's', # type of indents, 's' for spaces, 't' for tabs
             'block_indent_size'     : 2, # size of the content indent inside blocks
-            'block_char'            : '=', # character used to mark beginning of a block, same that is given in the regex
+            'block_char'            : '=', # character used to mark beginning of a block, same that is given in the block regex
             'debugging'             : False, # do i print debugging information?
             'input'                 : sys.stdin, # alternate input if  is not given to +parse()+
             'output'                : sys.stdout # output for parsed data
@@ -179,7 +315,7 @@ class Templating(object):
         raise Exception(exc_str)
         
     def _count_whitespace_(self, statement):
-    
+
         if self.options()['indent_type'].lower() == 's':
             return len(statement) - len(statement.lstrip(self._space))
         elif self.options()['indent_type'].lower() == 't':
@@ -238,6 +374,10 @@ class Templating(object):
     def options(self):
         
         return self.__options
+    
+    def update_globals(self, new_globals):
+    
+        self.globals.update(new_globals)
 
     def parse(self, block = None):
         
@@ -253,5 +393,5 @@ __data__ = {
     'version'   : '1.0',
     'require'   : ['IdentificationPlugin'],
     'main'      : HTTPServer,
-    'events'    : [HTTPDInitEvent]
+    'events'    : []
 }

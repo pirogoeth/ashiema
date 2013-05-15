@@ -19,7 +19,7 @@ class Event(object):
         self.get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
 
     def __repr__(self):
-        return "<Event>"
+        return "<Event(%s)>" % (type(self).__name__)
 
     def __register__(self):
         self.eventhandler.register(self)

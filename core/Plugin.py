@@ -18,6 +18,9 @@ class Plugin(object):
         
         self.name = type(self).__name__
         self.path = os.getcwd() + "/plugins/" + self.name + "/"
+        self.needs_dir = needs_dir
+
+        logging.getLogger('ashiema').debug("Initialising plugin: [" + self.name + "]")
         
         # set up the plugins directory, if it doesn't exist.
         if not os.path.exists(self.path) and needs_dir:
@@ -53,6 +56,11 @@ class Plugin(object):
         """ returns the eventhandler object """
         
         return self.eventhandler
+    
+    def get_plugin(self, plugin):
+        """ searches for +plugin+ in the plugin loader and returns it if available. """
+        
+        return self.connection.pluginloader.get_plugin(plugin)
     
     def get_path(self):
         """ returns the plugin directory path. """
