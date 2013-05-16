@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, re, cgi, wsgiref, errno, time, StringIO
+import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, StringIO
 from core import Plugin, Event, get_connection, util
 from core.util import Escapes, unescape
 from core.Event import Event
@@ -51,7 +51,13 @@ class HTTPServer(Plugin):
         if len(self.config) == 0:
             raise Exception("You must configure options for the HTTP server in your server config!")
 
-        self.resource_path = self.get_path() + self.config['resource_path']
+        self.resource_path = self.config['resource_path']
+
+        if self.resource_path[0] == '/':
+            self.resource_path = self.resource_path[1:]
+        
+        self.resource_path = self.get_path() + self.resource_path
+
         self.resource_route = self.config['resource_route']
         
         if self.resource_route[0] == '/':
@@ -69,8 +75,6 @@ class HTTPServer(Plugin):
         
         self.__load_layers()
 
-        self.__register_resource_handler()
-
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
 
@@ -78,9 +82,6 @@ class HTTPServer(Plugin):
         
         if HTTPServer.running:
             self.__stop()
-        
-        for handler in self.request_handlers.values():
-            handler.shutdown()
         
         self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__on_plugins_loaded)
@@ -95,6 +96,8 @@ class HTTPServer(Plugin):
         if HTTPServer.running:
             return
         
+        self.__register_resource_handler(self.resource_path, self.resource_route)
+
         bind_host = self.config['bind_host']
         bind_port = int(self.config['bind_port'])
         
@@ -133,50 +136,65 @@ class HTTPServer(Plugin):
         request_path = environment.get('PATH_INFO', '').lstrip('/')
 
         for handler in self.request_handlers.values():
-            match = re.search(handler.get_raw_route(), path)
+            match = re.search(handler.get_raw_route(), request_path)
             if match is not None:
                 environment['ROUTE_PARAMS'] = match.groups()
                 return handler(environment, start_response)
 
-        return self.__not_found(environment, start_response)
+        return self._not_found(environment, start_response)
     
-    def __not_found(self, environment, start_response):
+    def _not_found(self, environment, start_response):
         
         def render_404_template():
             rendered = StringIO()
+            templater = Templating()
             with closing(open(self.get_path() + '404.thtml', 'r')) as template:
                 try:
                     start_response('404 NOT FOUND', [
                                     ('Content-Type', 'text/html')])
                 except: pass
-                self.templater.update_globals({
+                templater.update_globals({
                     'path'          : environment.get('PATH_INFO', ''),
                     'env'           : environment
                 })
-                self.templater.options()['input'] = template
-                self.templater.options()['output'] = rendered
-                self.templater.parse()
+                templater.options()['input'] = template
+                templater.options()['output'] = rendered
+                templater.parse()
             return rendered
             
         for line in render_404_template().getvalue().split('\n'):
             yield line
     
-    def __register_resource_handler(self):
+    def __register_resource_handler(self, resource_path, resource_route):
         """ registers the statics handler for +resource_path+. """
         
         class HTTPResourceHandler(HTTPRequestHandler):
             
-            def __init__(self, plugin):
+            def __init__(self, plugin, path = None, route = None):
                 
                 HTTPRequestHandler.__init__(self, plugin)
                 
-                self.route = plugin.resource_route + "/?(.+)?$"
+                self.route = route
+                self.path = path
             
             def __call__(self, environment, start_response):
                 
-                return [environment['ROUTE_PARAMS']]
+                request = environment['ROUTE_PARAMS'][0]
+                mimetype = mimetypes.guess_type(request, strict = False)[0]
+                try:
+                    with closing(open(self.path + "/" + request, 'r')) as resource:
+                        print self.path + "/" + request + ", " + mimetype
+                        start_response(self.response_codes['OK'], [
+                                        ('Content-Type', mimetype)])
+                        data = resource.read()
+                        for line in data.split('\n'):
+                            yield line + "\n"
+                except (Exception) as e:
+                    print e
+                    for line in self.plugin._not_found(environment, start_response):
+                        yield line
         
-        resource_handler = HTTPResourceHandler(self)
+        resource_handler = HTTPResourceHandler(self, path = resource_path, route = resource_route)
         resource_handler.register()
 
     def handler(self, data):
@@ -208,7 +226,7 @@ class HTTPRequestHandler(object):
         self.name = type(self).__name__
         self.plugin = plugin
         self.templater = Templating()
-        self.route = self.route if self.route else (self.name + r'/?$')
+        self.route = (self.name + r'/?$') if not hasattr(self, 'route') else self.route
         self.response_codes = {
             'OK'                    : "200 OK",
             'BAD_REQUEST'           : "400 BAD REQUEST",

@@ -5,6 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
+class ConfigurationDictionary(dict):
+    """ modified dictionary that returns none for invalid keys """
+    
+    def __getitem__(self, key):
+    
+        try: return dict.__getitem__(self, key)
+        except (IndexError, KeyError) as e: return None
+
 class Configuration(object):
     """ this will hold the configuration.
         it will not actually read the configuration itself, but it
@@ -13,42 +21,51 @@ class Configuration(object):
     def __init__(self):
         """ initialise the container 
             store in key:value format withing the certain category """
-        self.container = {}
+
+        self.container = ConfigurationDictionary()
         self.loaded = False
         
     def __repr__(self):
         """ represent """
+
         return "<Configuration(%s)>" % (len(self.container))
 
     def __add__(self, set):
         """ addition function to add a set to the container """
-        self.container[set[2]].update({set[0]: set[1]})
+
+        self.container[set[2]].update(ConfigurationDictionary({set[0]: set[1]}))
     
     def __sub__(self, set):
         """ subtraction function to remove a set from a category. """
+
         self.container[set[0]].__delitem__(set[1])
     
     def __iadd__(self, category):
         """ p/e function to add a category """
-        self.container.update({category: {}})
+
+        self.container.update(ConfigurationDictionary({category: ConfigurationDictionary()}))
         return self
     
     def __isub__(self, category):
         """ s/e function to remove a category """
+
         if self.container[category]:
             self.container.__delitem__(category)
         return self
     
     def has_category(self, category):
         """ return if x has a category """
+
         return category in self.container
 
     def get_category(self, category):
         """ return a category """
+
         return self.container[category] if self.container.__contains__(category) else None
     
     def get_value(self, category, key):
         """ return [category:key] """
+
         value = self.container[category][key] if self.container[category].__contains__(key) else None
         if value is None: return value
         else:
@@ -59,16 +76,19 @@ class Configuration(object):
     
     def unload(self):
         """ unload an entire configuration """
+
         self.container.clear()
         self.loaded = False
     
     def reload(self):
         """ reload the configuration from the initially specified file """
+
         self.unload()
         self.load(self._filename)
     
     def load(self, file):
         """ load a file and read in the categories and variables """
+
         self._filename = file
         try: f = open(file, 'r')
         except IOError, e:

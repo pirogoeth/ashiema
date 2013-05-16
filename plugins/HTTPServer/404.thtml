@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>404 | Uh oh...</title>
+    <link href="/public/style.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="nav-sidebar">
+      <ul>
+      </ul>
+    </div>
+    <div class="container">
+      <h3>The page you are looking for can not be found...</h3>
+      <a href="/" id="home">Return home.</a>
+    </div>
+  </body>
+</html>
