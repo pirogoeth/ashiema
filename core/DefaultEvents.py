@@ -60,7 +60,9 @@ class PluginsLoadedEvent(Event):
         self.__register__()
 
     def match(self, data = None):
-        return get_connection().pluginloader._loaded
+        if isinstance(data, tuple) and get_connection().pluginloader._loaded:
+            return True
+        return False
     
     def run(self, data = None):
         for callback in self.callbacks.values():

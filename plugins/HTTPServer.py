@@ -5,13 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, StringIO
+import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, datetime, pprint, StringIO
 from core import Plugin, Event, get_connection, util
-from core.util import Escapes, unescape
+from core.util import Escapes, unescape, fork
 from core.Event import Event
 from core.Plugin import Plugin
 from contextlib import closing
 from cgi import parse_qs, escape
+from datetime import datetime
 from sys import exc_info
 from traceback import format_tb
 from StringIO import StringIO
@@ -70,6 +71,9 @@ class HTTPServer(Plugin):
                 if e.errno != errno.EEXIST:
                     raise
         
+        sys.stderr = WSGILoggingHandler()
+        sys.stdout = sys.stderr
+        
         self.request_handlers = {}
         self.__thread = None
         
@@ -80,6 +84,9 @@ class HTTPServer(Plugin):
 
     def __deinit__(self):
         
+        sys.stderr = sys.__stderr__
+        sys.stdout = sys.__stdout__
+
         if HTTPServer.running:
             self.__stop()
         
@@ -104,17 +111,15 @@ class HTTPServer(Plugin):
         HTTPServer.running = True
         
         self.__process = Process(target = self.__start_serve, args = (bind_host, bind_port,))
+        self.__process.daemon = True
         self.__process.start()
     
     def __start_serve(self, host, port):
-
+    
         server = make_server(host, port, self.__router)
-        while HTTPServer.running:
-            # sleep so we don't lock up CPU
-            time.sleep(0.0025)
-            # handle a request
-            server.handle_request()
-        print "Shutting down."
+
+        # handle requests forever, or at least until process termination
+        server.serve_forever()
 
     def __stop(self):
         
@@ -180,17 +185,15 @@ class HTTPServer(Plugin):
             def __call__(self, environment, start_response):
                 
                 request = environment['ROUTE_PARAMS'][0]
-                mimetype = mimetypes.guess_type(request, strict = False)[0]
                 try:
+                    mimetype = mimetypes.guess_type(request, strict = False)[0]
                     with closing(open(self.path + "/" + request, 'r')) as resource:
-                        print self.path + "/" + request + ", " + mimetype
                         start_response(self.response_codes['OK'], [
                                         ('Content-Type', mimetype)])
                         data = resource.read()
                         for line in data.split('\n'):
                             yield line + "\n"
                 except (Exception) as e:
-                    print e
                     for line in self.plugin._not_found(environment, start_response):
                         yield line
         
@@ -309,6 +312,26 @@ class ExceptionLayer(object):
         if hasattr(response, 'close'):
             response.close()
 
+class WSGILoggingHandler(object):
+
+    def __init__(self):
+    
+        self.logger = logging.getLogger('ashiema')
+        
+    def write(self, data):
+    
+        if data.lstrip().rstrip() == '': return
+        
+        self.logger.debug(data.lstrip().rstrip())
+    
+    def close(self):
+
+        pass
+    
+    def flush(self):
+
+        pass
+
 class Templating(object):
 
     """ This is a template parsing class, which will be used in conjunction with ashiema's HTTP server to serve templated
@@ -405,7 +428,7 @@ class Templating(object):
             if match:
                 stmt = match.group(1)
                 if self.options()['debugging']:
-                    print "matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char']))
+                    print >> sys.stderr, "matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char']))
                 eind_size = line.index(self.options()['block_char'])
                 eind_size += self.options()['block_indent_size']
                 search = pos + 1
@@ -421,7 +444,7 @@ class Templating(object):
                             break
                 stmt = self.preprocessor(stmt, 'exec')
                 if self.options()['debugging']:
-                    print "executing statement: [" + stmt + "]" # debug
+                    print >> sys.stderr, "executing statement: [" + stmt + "]" # debug
                 if search - (pos + 1) == 0:
                     stmt = '%s' % stmt
                 else:

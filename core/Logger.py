@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging
+import logging, cStringIO
 from logging import handlers
 
 _path = "logs/ashiema.log"

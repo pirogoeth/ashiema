@@ -1,0 +1,43 @@
+@import url('http://fonts.googleapis.com/css?family=Roboto+Condensed|Roboto|Roboto+Slab');
+@import url('http://fonts.googleapis.com/css?family=Open+Sans');
+
+div.exception-header {
+    line-height: .8;
+}
+
+div.exception-header > p {
+    font-size: .6em;
+    font-family: 'Roboto Slab', sans-serif;
+    font-style: italic;
+    text-align: center;
+}                
+
+div.exception-header > p:before {
+    content: '(';
+}
+
+div.exception-header > p:after {
+    content: ')';
+}
+
+ul.code {
+    font-size: .8em;
+    margin: 0em;
+    padding: 0em;
+    font-family: 'Roboto', sans-serif;
+    background: #f0f0f0;
+    list-style-type: none;
+    border: 1px solid #e1e1e1;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    word-wrap: normal;
+}
+
+ul.code > li:nth-child(2n-1) {
+    background: #fff;
+}
+
+li.code-item {
+    padding: 5px 0px;
+    white-space: pre;
+}

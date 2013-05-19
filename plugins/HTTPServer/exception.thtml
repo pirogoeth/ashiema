@@ -1,14 +1,22 @@
 <html>
   <head>
     <title>An exception has occurred...</title>
+    <link href="/public/style.css" rel="stylesheet" type="text/css">
+    <link href="/public/exception.css" rel="stylesheet" type="text/css">
   </head>
   <body>
-    <strong>%{ type.__name__ }</strong>
-    <p>%{ value }</p>
-    <br><br>
-    <pre>
-    = for line in traceback
-      %{ line }<br>
-    </pre>
+    <div class="container">
+      <div class="exception-header">
+        <h6>%{ type.__name__ }</h6>
+        <p>%{ value }</p>
+      </div>
+      <div class="divider"></div>
+      <ul class="code">
+      = for line in traceback
+        = if line.lstrip().rstrip() != ''
+          <li class="code-item">%{ line }</li>
+      </ul>
+      <a href="/"><button class="home-link">Return home.</button></a>
+    </div>
   </body>
 </html>

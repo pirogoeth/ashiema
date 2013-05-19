@@ -2,15 +2,14 @@
   <head>
     <title>404 | Uh oh...</title>
     <link href="/public/style.css" rel="stylesheet" type="text/css">
+    <link href="/public/404.css" rel="stylesheet" type="text/css">
   </head>
   <body>
-    <div class="nav-sidebar">
-      <ul>
-      </ul>
-    </div>
     <div class="container">
-      <h3>The page you are looking for can not be found...</h3>
-      <a href="/" id="home">Return home.</a>
+      <h3>The page you are looking for cannot be found...</h3>
+      <div class="divider"></div>
+      <div class="reflected">404</div>
+      <a href="/"><button class="home-link">Return home.</button></a>
     </div>
   </body>
 </html>
