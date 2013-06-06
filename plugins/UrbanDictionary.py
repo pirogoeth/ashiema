@@ -22,7 +22,6 @@ class UrbanDictionary(Plugin):
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
         self.cache = {}
-        self.scheduler = connection.scheduler
         
         self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self._load_identification)
@@ -110,18 +109,10 @@ class UrbanDictionary(Plugin):
                     data.target.message("%s[UrbanDictionary]%s: %s%s%s is not defined yet." % (Escapes.BOLD, Escapes.BOLD, Escapes.RED, term, Escapes.RED))
                     return
                 definitions = response['list']
-                table = TextTable()
-                table.header = term.title()
-                table.row_size_limit = 45
-                table.add_col_names(['Definition', 'Example'])
-                for definition in definitions:
-                    table.add_row([definition['definition'], definition['example']])
-                    table.add_row([' ', ' '])
                 try:
-                    data.target.privmsg("    ")
-                    for line in str(table).split('\n'):
-                        data.target.privmsg(line)
-                    data.target.privmsg("    ")
+                    for definition in definitions:
+                        data.target.privmsg(" - %sDefinition%s: " % (Escapes.BLUE, Escapes.BLUE) + definition['definition'])
+                        data.target.privmsg(" => %sExample%s: " % (Escapes.GREEN, Escapes.GREEN) + definition['example'])
                 except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e:
                     data.target.privmsg(" - %s%sCould not decode results.%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL))
                     [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
