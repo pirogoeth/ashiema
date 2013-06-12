@@ -19,7 +19,6 @@ class GoogleSearch(Plugin):
         Plugin.__init__(self, connection, eventhandler, needs_dir = False)
         
         self.cache = {}
-        self.scheduler = connection.scheduler
         
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PMEvent'].register(self.handler)

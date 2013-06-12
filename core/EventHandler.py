@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import DefaultEvents, logging, traceback
+import DefaultEvents, logging, traceback, sys
 from DefaultEvents import DefaultEventChainloader
 
 class EventHandler(object):

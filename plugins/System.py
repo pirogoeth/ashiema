@@ -25,7 +25,7 @@ class SystemEvent(Event.Event):
         # 0 -> reload
         # 1 -> shutdown
         # 2 -> rehash
-        logging.getLogger('ashiema').info('Waiting for plugins to finish up...')
+        self.log_info('Waiting for plugins to finish up...')
         for callback in self.callbacks.values():
             callback(data)
 
@@ -66,9 +66,9 @@ class System(Plugin):
                 get_connection().pluginloader.reload()
             except Exception, e:
                 data.origin.message("Exception %s while reloading plugins." % (e))
-                [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+                [self.log_error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
                 return
-            data.origin.message('Plugins reloaded')
+            data.origin.message('Plugins reloaded!')
         elif data.message == (0, 'rehash'):
             assert self.identification.require_level(data, 2)
             # System event code 2 -> rehash

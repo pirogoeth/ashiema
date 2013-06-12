@@ -7,7 +7,7 @@ import os, re, logging, sys, signal, htmlentitydefs
 
 """ these are some various utilities needed for use in the startup process and other parts of runtime """
 
-def fork(forkpty = False):
+def fork():
     try:
         pid = os.fork()
     except OSError, e:
@@ -28,10 +28,6 @@ def fork(forkpty = False):
             os._exit(0)
     else:
         os._exit(0)
-    if forkpty:
-        return os.forkpty()
-    else:
-        return ()
 
 def unescape(text):
     def fixup(m):

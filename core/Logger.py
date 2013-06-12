@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, cStringIO
+import logging, cStringIO, sys
 from logging import handlers
 
 _path = "logs/ashiema.log"
@@ -45,3 +45,23 @@ def setup_logger(stream = False):
     formatter = logging.Formatter('{%(name)s}[%(levelname)s/%(asctime)s]: %(message)s')
     handler.setFormatter(formatter)
     log.addHandler(handler)
+    
+class StdoutLoggingHandler(object):
+    
+    def __init__(self):
+    
+        self.logger = logging.getLogger('ashiema')
+    
+    def write(self, data):
+    
+        if data.lstrip().rstrip() == '': return
+        
+        self.logger.debug(data.lstrip().rstrip())
+    
+    def close(self):
+    
+        pass
+    
+    def flush(self):
+    
+        pass

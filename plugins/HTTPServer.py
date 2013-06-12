@@ -10,6 +10,8 @@ from core import Plugin, Event, get_connection, util
 from core.util import Escapes, unescape, fork
 from core.Event import Event
 from core.Plugin import Plugin
+from core.HelpFactory import Contexts
+from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from contextlib import closing
 from cgi import parse_qs, escape
 from datetime import datetime
@@ -71,11 +73,8 @@ class HTTPServer(Plugin):
                 if e.errno != errno.EEXIST:
                     raise
         
-        sys.stderr = WSGILoggingHandler()
-        sys.stdout = sys.stderr
-        
         self.request_handlers = {}
-        self.__thread = None
+        self.__process = None
         
         self.__load_layers()
 
@@ -110,16 +109,39 @@ class HTTPServer(Plugin):
         
         HTTPServer.running = True
         
-        self.__process = Process(target = self.__start_serve, args = (bind_host, bind_port,))
-        self.__process.daemon = True
-        self.__process.start()
+        self.__start_serve(bind_host, bind_port)
     
     def __start_serve(self, host, port):
     
-        server = make_server(host, port, self.__router)
+        class WSGIServerProcess(Process):
+        
+            def __init__(self, host, port, router):
+                Process.__init__(self, name = "ashiema WSGI/HTTP server process")
 
-        # handle requests forever, or at least until process termination
-        server.serve_forever()
+                self.host = host
+                self.port = port
+                self.active = False
+                self.daemon = True
+                self.__router = router
+                self.__server = make_server(self.host, self.port, self.__router)
+
+            def set_active(self, active):
+                self.active = active
+            
+            def run(self):
+                self.active = True
+                while self.active:
+                    try:
+                        time.sleep(0.00025)
+                        self.__server.handle_request()
+                    except (SystemExit, KeyboardInterrupt) as e:
+                        self.__server.server_close()
+                        return
+                self.__server.server_close()
+
+        self.__process = WSGIServerProcess(host, port, self.__router)
+        self.__process.start()
+        self.log_debug("Started WSGI server in child process [ID: %s]." % (self.__process.pid))
 
     def __stop(self):
         
@@ -128,6 +150,10 @@ class HTTPServer(Plugin):
         
         HTTPServer.running = False
 
+        self.log_info("Deactivating HTTP server...")
+        self.__process.set_active(False)
+
+        self.log_info("Terminating child process...")
         self.__process.terminate()
     
     def __load_layers(self):
@@ -202,13 +228,33 @@ class HTTPServer(Plugin):
 
     def handler(self, data):
     
-        pass
-    
+        if data == (0, '@httpd-start'):
+            assert self.identification.require_level(data, 2)
+            if HTTPServer.running:
+                data.respond_to_user("The HTTP server is already running.")
+            elif not HTTPServer.running:
+                self.__start()
+                data.respond_to_user("The HTTP server is starting...")
+        elif data == (0, '@httpd-stop'):
+            assert self.identification.require_level(data, 2)
+            if not HTTPServer.running:
+                data.respond_to_user("The HTTP server is not running.")
+            elif HTTPServer.running:
+                self.__stop()
+                data.respond_to_user("The HTTP server is stopping...")
+        elif data == (0, '@httpd-status'):
+            assert self.identification.require_level(data, 1)
+            if HTTPServer.running:
+                data.respond_to_user("The HTTP server is currently active.")
+                data.respond_to_user("Content is being served at %s:%s." % (self.config['bind_host'], self.config['bind_port']))
+            elif not HTTPServer.running:
+                data.respond_to_user("The HTTP server is currently inactive.")
+        
     def register_handler(self, handler):
         
         for reg_handler in self.request_handlers.values():
             if handler.get_raw_route() == reg_handler.get_raw_route():
-                logging.getLogger('ashiema').error("HTTPRequestHandler [" + handler.get_name() + "] tried to register the same HTTP route as handler [" + reg_handler.get_name() + "]!")
+                self.log_error("HTTPRequestHandler [" + handler.get_name() + "] tried to register the same HTTP route as handler [" + reg_handler.get_name() + "]!")
                 return
 
         self.request_handlers.update({ handler.get_name(): handler })
@@ -284,7 +330,8 @@ class ExceptionLayer(object):
                 self.templater.update_globals({
                     'type'      : type,
                     'value'     : value,
-                    'traceback' : traceback
+                    'traceback' : traceback,
+                    'path'      : environment.get('PATH_INFO', '')
                 })
                 self.templater.options()['input'] = template
                 self.templater.options()['output'] = rendered
@@ -312,26 +359,6 @@ class ExceptionLayer(object):
         if hasattr(response, 'close'):
             response.close()
 
-class WSGILoggingHandler(object):
-
-    def __init__(self):
-    
-        self.logger = logging.getLogger('ashiema')
-        
-    def write(self, data):
-    
-        if data.lstrip().rstrip() == '': return
-        
-        self.logger.debug(data.lstrip().rstrip())
-    
-    def close(self):
-
-        pass
-    
-    def flush(self):
-
-        pass
-
 class Templating(object):
 
     """ This is a template parsing class, which will be used in conjunction with ashiema's HTTP server to serve templated
@@ -340,7 +367,7 @@ class Templating(object):
         Interpolation:
             %{ statement; }
         
-            Interpolation applies to variables and statements, so input from anything can be used in-line.
+            Interpolation applies to variables and statements, so basically anything that returns a value can be used in-line.
         
         Flow Control:
             = if whatever is something or something is None
@@ -428,7 +455,7 @@ class Templating(object):
             if match:
                 stmt = match.group(1)
                 if self.options()['debugging']:
-                    print >> sys.stderr, "matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char']))
+                    logging.getLogger('ashiema').debug("[Templating] matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char'])))
                 eind_size = line.index(self.options()['block_char'])
                 eind_size += self.options()['block_indent_size']
                 search = pos + 1
@@ -444,7 +471,7 @@ class Templating(object):
                             break
                 stmt = self.preprocessor(stmt, 'exec')
                 if self.options()['debugging']:
-                    print >> sys.stderr, "executing statement: [" + stmt + "]" # debug
+                    logging.getLogger('ashiema').debug("[Templating] executing statement: [" + stmt + "]")
                 if search - (pos + 1) == 0:
                     stmt = '%s' % stmt
                 else:
@@ -480,4 +507,25 @@ __data__ = {
     'require'   : ['IdentificationPlugin'],
     'main'      : HTTPServer,
     'events'    : []
+}
+
+__help__ = {
+    '@httpd-start' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Makes the HTTP server start serving on the designated host and port.',
+        PARAMS  : '',
+        ALIASES : []
+    },
+    '@httpd-stop' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Makes the HTTP server stop serving.',
+        PARAMS  : '',
+        ALIASES : []
+    },
+    '@httpd-status' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Displays the current status of the HTTP server.',
+        PARAMS  : '',
+        ALIASES : []
+    }
 }

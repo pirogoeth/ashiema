@@ -31,11 +31,11 @@ class Connection(object):
         self.log = logging.getLogger('ashiema')
         self.basic = Basic(self)
         self._queue = Queue()
+        self._scheduler = Scheduler()
         self._evh = EventHandler()
         self.pluginloader = PluginLoader((self, self._evh))
-        self.scheduler = Scheduler()
         self.tasks = {}
-
+   
     """ information setup """
     def setup_info(self, nick = '', ident = '', real = ''):
         """ set up post connection info. """
@@ -64,7 +64,7 @@ class Connection(object):
         for task in self.tasks:
             self.scheduler.unschedule_job(task)
         # shut down the scheduler
-        self.scheduler.shutdown()
+        self._scheduler.shutdown()
         # change the value that controls the connection loop
         self._connected = False
         
@@ -78,14 +78,14 @@ class Connection(object):
         _ssl = True if _ssl == True or _ssl == "True" or _ssl == "true" else False
         if _ssl is True:
             self.connection = ssl.wrap_socket(self._socket)
-            self.log.info("connection type: SSL")
+            self.log.info("Connection type: SSL")
         elif _ssl is False:
             self.connection = self._socket
-            self.log.info("connection type: plain")
+            self.log.info("Connection type: Plain")
         else:
             self.connection = self._socket
-            self.log.warning("connection type not specified, assuming plain.")
-        if password is not None:
+            self.log.warning("Connection type not specified, assuming plain.")
+        if password is not None or password is not '':
             self._passrequired, self._password = (True, password)
         self._evh.load_default_events()
         self.connection.connect((address, int(port)))
@@ -111,6 +111,11 @@ class Connection(object):
 
         data = data.decode('UTF-8', 'ignore')
         self.connection.send(data.encode('UTF-8'))
+    
+    def get_scheduler(self):
+        """ returns the scheduler instance. """
+        
+        return self._scheduler
    
     def run(self):
         """ runs the polling loop. 
@@ -121,14 +126,14 @@ class Connection(object):
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
         # start the scheduler
-        self.scheduler.start()
+        self._scheduler.start()
         # cycle counter
         _cc = 1
         while self._connected is True:
             try:
                 # first, sleep so we don't slurp up CPU time like no tomorrow
-                time.sleep(0.005)
-                # send user registration if we're not already registered and about 35 cycles have passed
+                time.sleep(0.001)
+                # send user registration if we're not already registered and about 20 cycles have passed
                 if not self._registered and _cc is 20:
                     if self._passrequired: 
                         self.send("PASS :%s" % (self._password))
@@ -144,7 +149,7 @@ class Connection(object):
                 # check if im in the errors
                 if self.connection in e:
                     self._connected = False
-                    self.log.severe("error during poll; aborting")
+                    self.log.critical("Error during poll; aborting!")
                     break
                 # process the data thats in the queue
                 try:
@@ -157,7 +162,7 @@ class Connection(object):
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
         # what are we going to do after the loop closes?
-        self.log.info("shutting down.")
+        self.log.info("Shutting down.")
         self.connection.close()
         self._socket.close()
         exit()

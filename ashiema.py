@@ -16,37 +16,57 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import core, sys
+import sys
+from core.Logger import StdoutLoggingHandler
+
+# Try to set up redirected outputs before anything else.
+#sys.stdout = StdoutLoggingHandler()
+#sys.stderr = StdoutLoggingHandler()
+
+# Import everything else and do normal setup.
+import core, logging
 from core import Connection, Logger, util
 from core.util import Configuration, fork
 
 def main(conf_file):
-    _config = Configuration.Configuration()
-    _config.load(conf_file)
-    connection = Connection.Connection(_config)
-    Logger.setup_logger(stream = (_config.get_value('main', 'fork') != 'True' or _config.get_value('main', 'fork') != 'true'))
+    config = Configuration.Configuration()
+    config.load(conf_file)
+    
+    connection = Connection.Connection(config)
     core._connection = connection
-    log_level = _config.get_value('logging', 'level')
-    if _config.get_value('main', 'debug') == 'True' or _config.get_value('main', 'debug') == 'true':
+
+    Logger.setup_logger(stream = (config.get_value('main', 'fork') != 'True' or config.get_value('main', 'fork') != 'true'))
+    
+    log_level = config.get_value('logging', 'level')
+    
+    if config.get_value('main', 'debug') == 'True' or config.get_value('main', 'debug') == 'true':
         connection.set_debug(True)
-    else: connection.set_debug(False)
-    Logger.set_level(log_level)
+        Logger.set_level('debug')
+    else: 
+        connection.set_debug(False)
+        Logger.set_level(log_level)
+
     connection.setup_info(
-        nick     = _config.get_value('main', 'nick'),
-        ident    = _config.get_value('main', 'ident'),
-        real     = _config.get_value('main', 'real')
+        nick     = config.get_value('main', 'nick'),
+        ident    = config.get_value('main', 'ident'),
+        real     = config.get_value('main', 'real')
     )
-    if _config.get_value('main', 'fork') == 'True' or _config.get_value('main', 'fork') == 'true':
+
+    if config.get_value('main', 'fork') == 'True' or config.get_value('main', 'fork') == 'true':
         fork()
+
     connection.connect(
-        address  = _config.get_value('main', 'address'),
-        port     = _config.get_value('main', 'port'),
-        _ssl     = _config.get_value('main', 'ssl'),
-        password = _config.get_value('main', 'password')
+        address  = config.get_value('main', 'address'),
+        port     = config.get_value('main', 'port'),
+        _ssl     = config.get_value('main', 'ssl'),
+        password = config.get_value('main', 'password')
     ).run()
 
 if __name__ == '__main__':
+
     try: filename = sys.argv[1]
     except IndexError:
         filename = 'bot.conf'
-    main(filename)
+    try: main(filename)
+    except AttributeError as e:
+        print >> sys.__stderr__, "Invalid configuration: %s!" % (filename)

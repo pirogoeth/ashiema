@@ -62,7 +62,8 @@ class PluginsLoadedEvent(Event):
     def match(self, data = None):
         if isinstance(data, tuple) and get_connection().pluginloader._loaded:
             return True
-        return False
+        else:
+            return False
     
     def run(self, data = None):
         for callback in self.callbacks.values():
@@ -78,7 +79,8 @@ class ModeChangeEvent(Event):
     def match(self, data = None):
         if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
             return True
-        return False
+        else:
+            return False
     
     def run(self, data):
         if self.callbacks is not None:
@@ -96,6 +98,8 @@ class ErrorEvent(Event):
     def match(self, data):
         if (str(data.type) == "ERROR" or str(data.type) == "KILL") and data.message:
             return True
+        else:
+            return False
     
     def run(self, data):
         logging.getLogger('ashiema').critical('<- %s: %s' % (str(data.type), data.message))
@@ -112,6 +116,8 @@ class PMEvent(Event):
     def match(self, data):
         if self.commands.__contains__(str(data.type)) and str(data.target) == data.connection.nick:
             return True
+        else:
+            return False
 
     def run(self, data):
         if self.callbacks is not None:
@@ -168,6 +174,8 @@ class MessageEvent(Event):
     def match(self, data):
         if self.commands.__contains__(str(data.type)) and str(data.target) != data.connection.nick:
             return True
+        else:
+            return False
     
     def run(self, data):
         if self.callbacks is not None:
@@ -184,6 +192,8 @@ class UserJoinedEvent(BasicUserEvent):
     def match(self, data):
         if str(data.type) == 'JOIN':
             return True
+        else:
+            return False
                 
 class UserPartedEvent(BasicUserEvent):
 
@@ -193,6 +203,8 @@ class UserPartedEvent(BasicUserEvent):
     def match(self, data):
         if str(data.type) == 'PART':
             return True
+        else:
+            return False
     
 class UserQuitEvent(BasicUserEvent):
 
@@ -202,6 +214,8 @@ class UserQuitEvent(BasicUserEvent):
     def match(self, data):
         if str(data.type) == 'QUIT':
             return True
+        else:
+            return False
 
 class PingEvent(Event):
    
@@ -212,6 +226,8 @@ class PingEvent(Event):
     def match(self, data):
         if str(data.type) == 'PING':
             return True
+        else:
+            return False
    
     def run(self, data):
         if data.message is None:

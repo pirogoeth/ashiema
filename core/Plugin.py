@@ -20,7 +20,11 @@ class Plugin(object):
         self.path = os.getcwd() + "/plugins/" + self.name + "/"
         self.needs_dir = needs_dir
 
-        logging.getLogger('ashiema').debug("Initialising plugin: [" + self.name + "]")
+        self.scheduler = self.connection.get_scheduler()
+        
+        self.logger = logging.getLogger('ashiema')
+
+        self.logger.debug("Initialising plugin: [" + self.name + "]")
         
         # set up the plugins directory, if it doesn't exist.
         if not os.path.exists(self.path) and needs_dir:
@@ -66,3 +70,28 @@ class Plugin(object):
         """ returns the plugin directory path. """
         
         return self.path if self.needs_dir is True else ''
+    
+    def log_debug(self, *args):
+        """ send data to the logger with level `debug`. """
+        
+        [self.logger.debug('[' + self.name + '] ' + message) for message in args]
+
+    def log_info(self, *args):
+        """ send data to the logger with level `info`. """
+        
+        [self.logger.info('[' + self.name + '] ' + message) for message in args]
+
+    def log_warning(self, *args):
+        """ send data to the logger with level `warning`. """
+        
+        [self.logger.warning('[' + self.name + '] ' + message) for message in args]
+
+    def log_error(self, *args):
+        """ send data to the logger with level `error`. """
+        
+        [self.logger.error('[' + self.name + '] ' + message) for message in args]
+
+    def log_critical(self, *args):
+        """ send data to the logger with level `critical`. """
+        
+        [self.logger.critical('[' + self.name + '] ' + message) for message in args]

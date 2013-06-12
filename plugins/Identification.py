@@ -40,7 +40,7 @@ class IdentificationPlugin(Plugin):
             self.shelf = shelve.open(self.get_path() + "users", protocol = 2, writeback = True)
         except Exception as e:
             self.shelf = None
-            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+            [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
         self._opened = True
     
     def __close_shelve__(self):
@@ -64,7 +64,7 @@ class IdentificationPlugin(Plugin):
             persistance_shelf.close()
         except Exception as e:
             persistance_shelf = None
-            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+            [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
 
     def __depersist_logins__(self):
     
@@ -81,7 +81,7 @@ class IdentificationPlugin(Plugin):
             persistance_shelf.close()
         except Exception as e:
             persistance_shelf = None
-            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+            [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
         finally:
             del persistance_shelf
             if os.path.isfile(_path):
@@ -100,8 +100,8 @@ class IdentificationPlugin(Plugin):
     def require_level(self, data, level):
 
         """ permission level filter """
-        if level not in xrange(0, 4):
-            logging.getLogger('ashiema').error('Invalid permission level range.')
+        if level not in xrange(0, 3):
+            self.log_error('Invalid permission level range.')
             return False
         if not self.__check_login__(str(data.origin)):
             data.origin.message('Please log in to use this function.')
@@ -133,7 +133,7 @@ class IdentificationPlugin(Plugin):
                 username = data.message[1]
                 password = data.message[2]
             except (IndexError):
-                data.origin.message('Invalid parameters.', 'login <username> <password>')
+                data.origin.message('Invalid parameters.')
                 return
             if not self.__check_user__(username):
                 data.origin.message('Invalid username.')
@@ -144,7 +144,7 @@ class IdentificationPlugin(Plugin):
                         data.origin.to_s(): username
                     }
                 )
-                data.origin.message('Logged in as %s.' % (username))
+                data.origin.message('Logged in as %s%s%s.' % (Escapes.BOLD, username, Escapes.BOLD))
                 return
             elif md5(password) != self.shelf[username]['password']:
                 data.origin.message('Invalid password.')
@@ -161,7 +161,7 @@ class IdentificationPlugin(Plugin):
                 username = data.message[1]
                 password = data.message[2]
             except (IndexError):
-                data.origin.message('Invalid parameters.', '%sregister%s    <username> <password>' % (Escapes.BOLD, Escapes.BOLD))
+                data.origin.message('Invalid parameters.')
                 return
             if len(password) >= 8:
                 self.shelf.update(
@@ -184,14 +184,14 @@ class IdentificationPlugin(Plugin):
                 level = data.message[2]
                 level = int(level)
             except (IndexError):
-                data.origin.message('Invalid parameters.', '%ssetlevel%s   <username> <level>' % (Escapes.BOLD, Escapes.BOLD))
+                data.origin.message('Invalid parameters.')
                 return
             if self.__check_user__(data.origin.to_s()):
-                if self.shelf[data.origin.to_s()]['level'] == 3:
+                if self.shelf[data.origin.to_s()]['level'] == 2:
                     if username not in self.shelve:
                         data.origin.message('Invalid username.')
                         return
-                    elif level not in xrange(0, 4):
+                    elif level not in xrange(0, 3):
                         data.origin.message('Invalid permissions level.')
                         return
                     self.shelve[username].update(
