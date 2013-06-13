@@ -6,16 +6,16 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, shelve, core, traceback
-from core import Plugin, Event, HelpFactory, get_connection, md5, util
+from core import Plugin, Events, HelpFactory, get_connection, md5, util
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from core.util import Escapes
 
 class IdentificationPlugin(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
 
-        Plugin.__init__(self, connection, eventhandler, needs_dir = True)
+        Plugin.__init__(self, needs_dir = True)
         
         self.eventhandler.get_events()['PMEvent'].register(self.handler)
         self.eventhandler.get_events()['SystemEvent'].register(self.sys_handler)
@@ -37,7 +37,7 @@ class IdentificationPlugin(Plugin):
     def __open_shelve__(self):
 
         try:
-            self.shelf = shelve.open(self.get_path() + "users", protocol = 2, writeback = True)
+            self.shelf = shelve.open(self.get_path() + "users.db", protocol = 2, writeback = True)
         except Exception as e:
             self.shelf = None
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]

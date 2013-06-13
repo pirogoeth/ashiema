@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core, sys, traceback, threading, random
-from core import Plugin, Event, HelpFactory, get_connection, util
+from core import Plugin, Events, HelpFactory, get_connection, util
 from core.util import Escapes
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts
@@ -24,9 +24,9 @@ get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
 
 class ArtificialIntelligence(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
     
-        Plugin.__init__(self, connection, eventhandler, needs_dir = True)
+        Plugin.__init__(self, needs_dir = True)
         
         self.brain = megahal.MegaHAL(brainfile = self.get_path() + "/brain")
         

@@ -22,6 +22,16 @@ class Channel(object):
     def __repr__(self):
         return str(self.name)
     
+    @staticmethod
+    def join(channel, key = None):
+        """ assembles a join message. """
+        
+        if key is None:
+            message = "JOIN %s" % (channel)
+        else: message = "JOIN %s :%s" % (channel, key)
+        
+        return message
+
     def to_s(self):
         return str(self.name)
     

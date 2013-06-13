@@ -5,34 +5,39 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import DefaultEvents, logging, traceback, sys
-from DefaultEvents import DefaultEventChainloader
+import Events, logging, traceback, sys
 
 class EventHandler(object):
 
+    __instance = None
+    
+    @staticmethod
+    def get_instance():
+
+        return EventHandler.__instance
+
     def __init__(self):
+
+        EventHandler.__instance = self
+
         self.events = {}
-        self._d_loaded = False
+        self.load_events()
 
     def __repr__(self):
+
         return "<EventHandler(%d events)>" % (len(self.events))
 
     def __call__(self):
+
         return self.events
 
-    def load_default_events(self):
-        """ loads all events necessary to perform basic functions """
+    def load_events(self):
+        """ loads all core provided events """
         
-        assert self._d_loaded is False, 'Default events have already been loaded.'
+        events = Events.get_events()
+        self.events.update(events)
+        logging.getLogger('ashiema').info("Loaded %d default events." % (len(events)))
 
-        self._dec = DefaultEventChainloader(self)
-        logging.getLogger('ashiema').info("Loaded %d default events." % (self._dec.get_count()))
-
-    def get_default_events(self):
-        """ gets the default events for usage """
-        
-        return self._dec.get_events()
-        
     def get_events(self):
         """ returns the events that have been loaded by the system. """
         
@@ -61,9 +66,9 @@ class EventHandler(object):
             if event.match(data):
                 e_map.append(event)
             else: continue
-        return self.fire(data, e_map)
+        return self.fire(e_map, data)
     
-    def fire(self, data, event_map):
+    def fire(self, event_map, data):
         """ fire all mapped events with provided data """
 
         for event in event_map:

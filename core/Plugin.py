@@ -6,15 +6,20 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import logging, util, os, errno
+from core.Connection import Connection
+from core.EventHandler import EventHandler
+from core.PluginLoader import PluginLoader
+from util import Configuration
+from util.Configuration import Configuration, ConfigurationSection
 
 class Plugin(object):
     """ this is the plugin implementation. """
     
-    def __init__(self, connection, eventhandler, needs_dir = False):
+    def __init__(self, needs_dir = False):
         # you need to register events and commands and such right in here.
         
-        self.connection = connection
-        self.eventhandler = eventhandler
+        self.connection = Connection.get_instance()
+        self.eventhandler = EventHandler.get_instance()
         
         self.name = type(self).__name__
         self.path = os.getcwd() + "/plugins/" + self.name + "/"
@@ -47,14 +52,14 @@ class Plugin(object):
     def get_configuration(self):
         """ returns the system configuration object. """
 
-        return self.connection.configuration
+        return Configuration.get_instance()
 
     def get_plugin_configuration(self):
         """ returns the configuration dictionary from the system configuration for this
             specific plugin. """
 
-        plugin_dict = self.get_configuration().get_category(self.name)
-        return plugin_dict if plugin_dict is not None else {}
+        plugin_dict = self.get_configuration().get_section(self.name)
+        return plugin_dict if plugin_dict is not None else ConfigurationSection()
     
     def get_eventhandler(self):
         """ returns the eventhandler object """
@@ -64,7 +69,7 @@ class Plugin(object):
     def get_plugin(self, plugin):
         """ searches for +plugin+ in the plugin loader and returns it if available. """
         
-        return self.connection.pluginloader.get_plugin(plugin)
+        return PluginLoader.get_instance().get_plugin(plugin)
     
     def get_path(self):
         """ returns the plugin directory path. """

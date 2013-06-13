@@ -7,10 +7,10 @@
 
 import hashlib
 
-version = "1.0"
+__all__ = ['Connection', 'Events', 'EventHandler', 'HelpFactory', 
+       'Logger', 'Plugin', 'PluginLoader', 'Tokenizer']
 
-def get_connection():
-    return _connection
+version = "1.1"
 
 def md5(data):
     _m = hashlib.md5()

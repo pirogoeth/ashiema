@@ -6,9 +6,9 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, datetime, pprint, StringIO
-from core import Plugin, Event, get_connection, util
+from core import Plugin, Events, get_connection, util
 from core.util import Escapes, unescape, fork
-from core.Event import Event
+from core.Events import Event
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
@@ -43,9 +43,9 @@ class HTTPServer(Plugin):
         Path allocation will be handled by this plugin automatically after all HTTPRequestHandlers are registered.
     """
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
 
-        Plugin.__init__(self, connection, eventhandler, needs_dir = True)
+        Plugin.__init__(self, needs_dir = True)
 
         HTTPServer.running = False
 

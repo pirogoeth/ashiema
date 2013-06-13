@@ -7,35 +7,49 @@
 
 import imp, util, os, logging, traceback, core
 from imp import load_source
-from core import get_connection, HelpFactory
 from HelpFactory import HelpFactory, Contexts
+from util.Configuration import Configuration
 
 class PluginLoader(object):
     """ this manages loading and unloading of all plugins. """
     
-    def __init__(self, (connection, eventhandler)):
+    __instance = None
+    
+    @staticmethod
+    def get_instance():
+
+        return PluginLoader.__instance
+    
+    def __init__(self):
+
+        PluginLoader.__instance = self
+
         # set up storage
         self.container = {}
         self.loaded = {}
+
         # set up objects
-        self.connection = connection
-        self.eventhandler = eventhandler
         self.helpfactory = HelpFactory()
+
         # set up logging
         self.log = logging.getLogger('ashiema')
+
         # assertion
         self._loaded = False
+
         # skip loads
-        self._skip = self.connection.configuration.get_value('plugins', 'skip_on_load') or []
+        self._skip = Configuration.get_instance().get_section('plugins').get_string('skip_on_load', None).split(',') or []
     
     def __call__(self):
+
         return self.loaded
     
     def __getitem__(self, plugin):
+
         return self()[plugin]
         
-    """ support functions """
     def get_plugin(self, plugin):
+
         assert self._loaded is True, 'Plugins have not yet been loaded.'
         
         try: return self.loaded[plugin]
@@ -43,13 +57,13 @@ class PluginLoader(object):
             [self.log.error(trace) for trace in traceback.format_exc(6).split('\n')]
             return None
 
-    """ dependency support """
     def __depcheck__(self, container):
+
         try:
             for plugin, data in container.iteritems():
                 for require in data['require']:
                     if require not in container:
-                        self.log.warning('plugin [%s] will not be loaded due to dependency problems. missing dep [%s]' % (plugin, require))
+                        self.log.warning('Plugin [%s] will not be loaded due to dependency problems. Missing dep. [%s]' % (plugin, require))
                         _c = container
                         del _c[plugin]
                         self.__depcheck__(_c)
@@ -58,6 +72,7 @@ class PluginLoader(object):
     
     """ load, reload, unload """
     def load(self):
+
         # this loads all plugins
         plugin_dir = os.getcwd() + '/plugins/'
         files = os.listdir(plugin_dir)
@@ -106,7 +121,7 @@ class PluginLoader(object):
                 try:
                     self.loaded.update(
                         {
-                            plugin : data['main'](self.connection, self.eventhandler)
+                            plugin : data['main']()
                         }
                     )
                 except:
@@ -125,6 +140,7 @@ class PluginLoader(object):
         elif not self.container: self.log.info('no plugins to load.')
     
     def reload(self):
+
         assert self._loaded is True, 'Plugins have not yet been loaded.'
         
         # run the unload method
@@ -135,6 +151,7 @@ class PluginLoader(object):
         self.load()
     
     def unload(self):
+
         assert self._loaded is True, 'Plugins have not yet been loaded.'
         
         # this unloads all currently loaded plugins (eg., for shutdown)

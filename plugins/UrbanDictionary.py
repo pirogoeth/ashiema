@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core, sys, traceback, re, json, htmlentitydefs
-from core import Plugin, Event, get_connection, util
+from core import Plugin, Events, get_connection, util
 from core.util import Escapes
 from core.util import unescape
 from core.util.texttable import TextTable
@@ -17,14 +17,14 @@ from urllib import urlopen, urlencode
 
 class UrbanDictionary(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
     
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
         
         self.cache = {}
         
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self._load_identification)
         
         self.connection.tasks.update({
             "UrbanDictionary__scheduled_cache_clean" :
@@ -39,8 +39,8 @@ class UrbanDictionary(Plugin):
     
     def __deinit__(self):
     
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].deregister(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self._load_identification)
         
         self.scheduler.unschedule_job(
             self.connection.tasks["UrbanDictionary__scheduled_cache_clean"]

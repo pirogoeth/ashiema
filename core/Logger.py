@@ -16,8 +16,6 @@ def set_debug(debug):
     else: logging.getLogger('ashiema').setLevel(logging.INFO)
 
 def set_path(path = "logs/ashiema.log"):
-    global _path
-    
     _path = path
 
 def set_level(level = "info"):
@@ -32,36 +30,14 @@ def set_level(level = "info"):
     logging.getLogger('ashiema').setLevel(_levels[level])
 
 def setup_logger(stream = False):
-    global _path
-
-    log = logging.getLogger("ashiema")
+    logger = logging.getLogger("ashiema")
 
     if stream is True:
         s = logging.StreamHandler()
         s.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
-        log.addHandler(s)
+        logger.addHandler(s)
 
     handler = handlers.RotatingFileHandler(_path, maxBytes = 10000, backupCount = 5)
     formatter = logging.Formatter('{%(name)s}[%(levelname)s/%(asctime)s]: %(message)s')
     handler.setFormatter(formatter)
-    log.addHandler(handler)
-    
-class StdoutLoggingHandler(object):
-    
-    def __init__(self):
-    
-        self.logger = logging.getLogger('ashiema')
-    
-    def write(self, data):
-    
-        if data.lstrip().rstrip() == '': return
-        
-        self.logger.debug(data.lstrip().rstrip())
-    
-    def close(self):
-    
-        pass
-    
-    def flush(self):
-    
-        pass
+    logger.addHandler(handler)

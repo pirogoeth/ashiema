@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, re, logging, core, urllib2, json, contextlib
-from core import Plugin, Event, get_connection, util
+from core import Plugin, Events, get_connection, util
 from core.util import Escapes, unescape
 from core.Plugin import Plugin
 from contextlib import closing
@@ -14,9 +14,9 @@ from urllib2 import urlopen, HTTPError
 
 class URLScraper(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
     
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
         
         # props to John Gruber, http://daringfireball.net/2010/07/improved_regex_for_matching_urls
         self.regexp = r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'"\.<>]))"""

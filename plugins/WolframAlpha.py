@@ -6,24 +6,22 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core
-from core import Plugin, Event, get_connection, util
+import os, logging, core, sys, traceback
+import xml.etree.cElementTree as xtree
+from core import Plugin, Events, get_connection, util
 from core.util import Escapes
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from core.util.texttable import TextTable
 from urllib import urlopen, urlencode
-import xml.etree.cElementTree as xtree
-import sys, traceback
-
 from contextlib import closing
 
 class WolframAlpha(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
         
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
     
         self.cache = {}
     

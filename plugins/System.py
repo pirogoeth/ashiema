@@ -6,21 +6,25 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, core, sys, logging, traceback
-from core import get_connection, md5, Plugin, Event, HelpFactory
+from core import Plugin, Events, HelpFactory
+from core.Events import Event
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
 
-class SystemEvent(Event.Event):
+class SystemEvent(Event):
 
-    def __init__(self, eventhandler):
-        Event.Event.__init__(self, eventhandler, "SystemEvent")
+    def __init__(self):
+
+        Event.__init__(self, "SystemEvent")
         self.__register__()
     
     def match(self, data):
+
         pass
     
     def run(self, data):
+
         # System Event codes:
         # 0 -> reload
         # 1 -> shutdown
@@ -31,9 +35,9 @@ class SystemEvent(Event.Event):
 
 class System(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
 
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
         
         self.eventhandler.get_events()['PMEvent'].register(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.load_identification)

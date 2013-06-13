@@ -5,79 +5,128 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-class ConfigurationDictionary(dict):
+import copy
+
+class ConfigurationSection(dict):
     """ modified dictionary that returns none for invalid keys """
+    
+    def __init__(self):
+        dict.__init__(self)
+        
+        self.mutable = True
     
     def __getitem__(self, key):
     
         try: return dict.__getitem__(self, key)
         except (IndexError, KeyError) as e: return None
+    
+    def __setitem__(self, key, value):
+    
+        if self.mutable:
+            self.update({key: value})
+        else:
+            raise AttributeError("This section is not mutable.")
+    
+    def set_mutable(self, mutable):
+    
+        self.mutable = mutable
+    
+    def set(self, key, value):
+    
+        return self.__setitem__(key, value)
+    
+    def get(self, key):
+    
+        return self.__getitem__(key)
+    
+    def get_string(self, key, default = ""):
+    
+        try: return str(self.get(key)) or default
+        except: return default
+    
+    def get_int(self, key, default = None):
+    
+        try: return int(self.get(key)) or default
+        except: return default
+    
+    def get_bool(self, key, default = False):
+    
+        try:
+            val = self.get(key) or default
+            if isinstance(val, bool):
+                return val
+            elif isinstance(val, str):
+                if val.lower() == 'true':
+                    self.set(key, True)
+                    return True
+                elif val.lower() == 'false':
+                    self.set(key, False)
+                    return False
+                else:
+                    return default
+            elif isinstanct(val, int):
+                if val == 1:
+                    self.set(key, True)
+                    return True
+                elif val == 0:
+                    self.set(key, False)
+                    return False
+                else:
+                    return default
+            else:
+                return default
+        except: return default
 
 class Configuration(object):
     """ this will hold the configuration.
         it will not actually read the configuration itself, but it
         will carry everything """
     
+    __instance = None
+    
+    @staticmethod
+    def get_instance():
+
+        return Configuration.__instance
+
     def __init__(self):
         """ initialise the container 
             store in key:value format withing the certain category """
 
-        self.container = ConfigurationDictionary()
+        Configuration.__instance = self
+
+        self.__container = ConfigurationSection()
         self.loaded = False
         
     def __repr__(self):
         """ represent """
 
-        return "<Configuration(%s)>" % (len(self.container))
+        return "<Configuration(%s)>" % (len(self.__container))
 
-    def __add__(self, set):
-        """ addition function to add a set to the container """
-
-        self.container[set[2]].update(ConfigurationDictionary({set[0]: set[1]}))
+    def __add_section(self, section_name):
+        """ adds a new configuration section to the main dictionary. """
+        
+        self.__container[section_name] = ConfigurationSection()
     
-    def __sub__(self, set):
-        """ subtraction function to remove a set from a category. """
+    def __remove_section(self, section_name):
+        """ removes a section from the main dictionary. """
+        
+        del self.__container[section_name]
 
-        self.container[set[0]].__delitem__(set[1])
-    
-    def __iadd__(self, category):
-        """ p/e function to add a category """
+    def has_section(self, section_name):
+        """ return if x has a section """
 
-        self.container.update(ConfigurationDictionary({category: ConfigurationDictionary()}))
-        return self
-    
-    def __isub__(self, category):
-        """ s/e function to remove a category """
+        return section_name in self.__container
 
-        if self.container[category]:
-            self.container.__delitem__(category)
-        return self
-    
-    def has_category(self, category):
-        """ return if x has a category """
+    def get_section(self, section_name):
+        """ return a raw/direct reference to a section """
 
-        return category in self.container
-
-    def get_category(self, category):
-        """ return a category """
-
-        return self.container[category] if self.container.__contains__(category) else None
-    
-    def get_value(self, category, key):
-        """ return [category:key] """
-
-        value = self.container[category][key] if self.container[category].__contains__(key) else None
-        if value is None: return value
-        else:
-            if value.startswith(':'):
-                """ this is a reference to another variable. """
-                return self.get_value(category, value[1:])
-            else: return value
+        return self.__container[section_name] if self.__container.__contains__(section_name) else None
     
     def unload(self):
         """ unload an entire configuration """
 
-        self.container.clear()
+        self.__container.clear()
         self.loaded = False
     
     def reload(self):
@@ -93,28 +142,30 @@ class Configuration(object):
         try: f = open(file, 'r')
         except IOError, e:
             return
-        if self.loaded: self.container.clear()
-        category = None
+        if self.loaded: self.__container.clear()
+        section_name = None
         for line in f.readlines():
             line = line.strip('\n')
             if line.startswith('#') or line.startswith('//'):
                 continue
             elif line.endswith('{'):
-                # category
-                category = line.split('{')[0].strip()
-                self += category
+                # section
+                section_name = line.split('{')[0].strip()
+                self.__add_section(section_name)
                 continue
             elif line.startswith('}') and line.endswith('}'):
-                category = None
+                section_name = None
+                continue
             elif '=' in line:
                 set = line.split('=')
                 l = len(set[0])
                 # strip whitespace
                 set[0] = set[0].strip()
                 set[1] = set[1].lstrip() if set[1] is not '' or ' ' else None
-                set.append(category)
-                self + set
+                section = self.get_section(section_name)
+                section.set(set[0], set[1])
                 continue
-            continue
+            else:
+                continue
         self.loaded = True
         f.close()

@@ -8,9 +8,9 @@
 import re, structures, logging, traceback
 from structures import Channel, Type, User, Message
 
-class Serialise(object):
+class Tokenizer(object):
     """ convert a line into a fielded object """
-    def __init__(self, data, (connection, eventhandler)):
+    def __init__(self, data):
         self._raw = data
         self.connection = connection
         self.eventhandler = eventhandler
@@ -23,7 +23,7 @@ class Serialise(object):
         try:
             self.origin, self.type, self.target, self.message = (None, None, None, None)
             self._origin, self._type, self._target, self._message = p.match(data).groups()
-            # turn each serialisable field into an object
+            # take each token and initialise the appropriate structure.
             self.origin = User.User(self.connection, self._origin) if self._origin is not None else None
             self.type = Type.Type(self._type) if self._type is not None else None
             if self._target.startswith('#', 0, 1) is True:
@@ -39,9 +39,6 @@ class Serialise(object):
         except:
             [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(5).split('\n')]
             pass
-    
-    def print_raw(self):
-        print self._raw
     
     def get_raw(self):
         return self._raw

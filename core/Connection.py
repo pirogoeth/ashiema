@@ -5,35 +5,42 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal
-import Queue, Logger, Serialise, EventHandler, BasicFunctions, PluginLoader
-from util import apscheduler
+import socket, select, ssl, logging, time, signal, collections
+import EventHandler, Logger, PluginLoader, Tokenizer
+from util import Configuration, apscheduler
 from util.apscheduler import scheduler
 from util.apscheduler.scheduler import Scheduler
+from util.Configuration import Configuration
 from PluginLoader import PluginLoader
-from BasicFunctions import Basic
-from Queue import Queue, QueueError
-from Serialise import Serialise
+from Tokenizer import Tokenizer
 from EventHandler import EventHandler
 
 class Connection(object):
     """ Connection object to manage the connection 
         to the uplink """
         
-    def __init__(self, configuration):
-        global connection
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        
+        return Connection.__instance
+
+    def __init__(self):
         """ initialise connection object. """
+
+        Connection.__instance = self
     
-        self.configuration = configuration
-        self.__conn_hooks__ = configuration.get_value('main', 'onconnect').split(',')
+        self.configuration = Configuration.get_instance()
+        self.config = self.configuration.get_section('main')
+        self.__conn_hooks__ = self.config.get_string('onconnect', '').split(',')
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
-        self.basic = Basic(self)
-        self._queue = Queue()
+        self._queue = collections.deque()
         self._scheduler = Scheduler()
         self._evh = EventHandler()
-        self.pluginloader = PluginLoader((self, self._evh))
+        self.pluginloader = PluginLoader()
         self.tasks = {}
    
     """ information setup """
@@ -153,8 +160,8 @@ class Connection(object):
                     break
                 # process the data thats in the queue
                 try:
-                    [self._raw_send(data) for data in [self._queue.pop() for count in xrange(0, 1)]]
-                except (AssertionError, QueueError) as e:
+                    [self._raw_send(data) for data in [self._queue.popleft() for count in xrange(0, 1)]]
+                except (AssertionError, IndexError) as e:
                     pass
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
@@ -175,6 +182,6 @@ class Connection(object):
         data = data.split('\r\n')
         for line in data:
              # serialisation.
-             line = Serialise(line, (self, self._evh))
+             line = Tokenizer(line)
              # fire off all events that match the data.
              self._evh.map_events(line)

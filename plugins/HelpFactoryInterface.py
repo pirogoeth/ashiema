@@ -14,9 +14,9 @@ from core.HelpFactory import CONTEXT, PARAMS, DESC, NAME, ALIASES
 
 class HelpFactoryInterface(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
         
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
         
         self.helpfactory = self.connection.pluginloader.helpfactory
         

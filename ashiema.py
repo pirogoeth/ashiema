@@ -3,43 +3,35 @@
 # ashiema: a lightweight, modular IRC bot written in python.
 # Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without 
+# restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the 
+# Software is furnished to do so, subject to the following conditions:
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import sys
-from core.Logger import StdoutLoggingHandler
-
-# Try to set up redirected outputs before anything else.
-#sys.stdout = StdoutLoggingHandler()
-#sys.stderr = StdoutLoggingHandler()
-
-# Import everything else and do normal setup.
-import core, logging
-from core import Connection, Logger, util
+import sys, core, logging, traceback
+from core import Logger, util
+from core.Connection import Connection
 from core.util import Configuration, fork
+from core.util.Configuration import Configuration, ConfigurationSection
 
 def main(conf_file):
-    config = Configuration.Configuration()
-    config.load(conf_file)
+    configuration = Configuration()
+    configuration.load(conf_file)
     
-    connection = Connection.Connection(config)
-    core._connection = connection
-
-    Logger.setup_logger(stream = (config.get_value('main', 'fork') != 'True' or config.get_value('main', 'fork') != 'true'))
+    connection = Connection()
     
-    log_level = config.get_value('logging', 'level')
+    config = configuration.get_section('main')
     
-    if config.get_value('main', 'debug') == 'True' or config.get_value('main', 'debug') == 'true':
+    Logger.setup_logger(stream = not config.get_bool('fork'))
+    
+    log_level = Configuration.get_instance().get_section('logging').get_string('level', 'debug')
+    
+    if config.get_bool('debug'):
         connection.set_debug(True)
         Logger.set_level('debug')
     else: 
@@ -47,19 +39,19 @@ def main(conf_file):
         Logger.set_level(log_level)
 
     connection.setup_info(
-        nick     = config.get_value('main', 'nick'),
-        ident    = config.get_value('main', 'ident'),
-        real     = config.get_value('main', 'real')
+        nick     = config.get_string('nick', 'ashiema'),
+        ident    = config.get_string('ident', 'ashiema'),
+        real     = config.get_string('real', 'ashiema IRC bot -- http://github.com/pirogoeth/ashiema')
     )
 
-    if config.get_value('main', 'fork') == 'True' or config.get_value('main', 'fork') == 'true':
+    if config.get_bool('fork'):
         fork()
 
     connection.connect(
-        address  = config.get_value('main', 'address'),
-        port     = config.get_value('main', 'port'),
-        _ssl     = config.get_value('main', 'ssl'),
-        password = config.get_value('main', 'password')
+        address  = config.get_string('address', '127.0.0.1'),
+        port     = config.get_int('port', 6667),
+        _ssl     = config.get_bool('ssl', False),
+        password = config.get_string('password', None)
     ).run()
 
 if __name__ == '__main__':
@@ -70,3 +62,4 @@ if __name__ == '__main__':
     try: main(filename)
     except AttributeError as e:
         print >> sys.__stderr__, "Invalid configuration: %s!" % (filename)
+        traceback.print_exc(4)

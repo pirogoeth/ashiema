@@ -11,8 +11,8 @@ from core.Plugin import Plugin
 
 class ExamplePlugin(Plugin):
 
-    def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+    def __init__(self):
+        Plugin.__init__(self, needs_dir = False)
         
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         
