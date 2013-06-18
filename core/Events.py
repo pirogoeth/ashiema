@@ -7,6 +7,9 @@
 
 import logging, time, threading, core, datetime, sys
 import Connection, EventHandler
+
+print >> sys.__stderr__, "Scope of Connection module from the view of core.Events: " + str(dir(Connection))
+
 from util import Configuration
 # from Connection import Connection
 
