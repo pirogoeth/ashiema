@@ -7,6 +7,7 @@
 
 import imp, util, os, logging, traceback, core
 from imp import load_source
+from EventHandler import EventHandler
 from HelpFactory import HelpFactory, Contexts
 from util.Configuration import Configuration
 
@@ -18,7 +19,10 @@ class PluginLoader(object):
     @staticmethod
     def get_instance():
 
-        return PluginLoader.__instance
+        if PluginLoader.__instance is None:
+            return PluginLoader()
+        else:
+            return PluginLoader.__instance
     
     def __init__(self):
 
@@ -29,7 +33,7 @@ class PluginLoader(object):
         self.loaded = {}
 
         # set up objects
-        self.helpfactory = HelpFactory()
+        self.helpfactory = HelpFactory.get_instance()
 
         # set up logging
         self.log = logging.getLogger('ashiema')
@@ -115,7 +119,7 @@ class PluginLoader(object):
             # initialise events from plugins
             for data in self.container.values():
                 for event in data['events']:
-                    event(self.eventhandler)
+                    event()
             # initialise plugins
             for plugin, data in self.container.iteritems():
                 try:
@@ -136,7 +140,7 @@ class PluginLoader(object):
                     self.log.error('%s failed to load and has been unloaded.' % (plugin))
             self.log.info('all plugins have been loaded.')
             # run the PluginsLoadedEvent
-            get_connection()._evh.fire_once(get_connection()._evh.get_events()['PluginsLoadedEvent'], ())
+            EventHandler.get_instance().fire_once(EventHandler.get_instance().get_events()['PluginsLoadedEvent'], ())
         elif not self.container: self.log.info('no plugins to load.')
     
     def reload(self):

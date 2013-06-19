@@ -5,8 +5,6 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-# constants for making __help__ dicts...just in case stuff changes in the future.
-
 CONTEXT = "context"
 DESC = "desc"
 PARAMS = "params"
@@ -22,18 +20,21 @@ class Contexts(object):
 class Filters(object):
 
     def _public(entry):
+
         if entry[CONTEXT] is Contexts.PUBLIC:
             return True
         else:
             return False
     
     def _private(entry):
+
         if entry[CONTEXT] is Contexts.PRIVATE:
             return True
         else:
             return False
     
     def _both(entry):
+
         if entry[CONTEXT] is Contexts.BOTH:
             return True
         else:
@@ -44,24 +45,43 @@ class Filters(object):
     BOTH = _both
 
 class HelpFactory(object):
+    """ Stores help information for plugins and provides a simple interface to retrieve stored help data. """
+
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        
+        if HelpFactory.__instance is None:
+            return HelpFactory()
+        else:
+            return HelpFactory.__instance
 
     def __init__(self):
+    
+        HelpFactory.__instance = self
+
         self._help = {}
     
     def register(self, plugin, help):
+
         self._help[plugin] = help
     
     def deregister(self, plugin):
+
         del self._help[plugin]
     
     def getHelpForPlugin(self, plugin):
+
         if not self._help.__contains__(plugin):
             yield None
+
         for key, entry in self._help[plugin].iteritems():
             entry.update({NAME : key})
             yield entry
     
     def getHelp(self, filter_func = None):
+
         results = []
         
         for plugin in self._help.keys():
@@ -73,6 +93,7 @@ class HelpFactory(object):
             yield entry
 
     def getAllPublicHelp(self):
+
         results = []
 
         for plugin in self._help.keys():
@@ -84,6 +105,7 @@ class HelpFactory(object):
             yield entry
 
     def getAllPrivateHelp(self):
+
         results = []
 
         for plugin in self._help.keys():
@@ -95,6 +117,7 @@ class HelpFactory(object):
             yield entry
     
     def getDualContextHelp(self):
+
         results = []
         
         for plugin in self._help.keys():

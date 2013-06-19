@@ -5,8 +5,8 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, re, logging, core, urllib2, json, contextlib
-from core import Plugin, Events, get_connection, util
+import os, re, logging, core, urllib2, json, contextlib, traceback
+from core import Plugin, Events, util
 from core.util import Escapes, unescape
 from core.Plugin import Plugin
 from contextlib import closing
@@ -56,9 +56,10 @@ class URLScraper(Plugin):
                             data.target.message(self.format.replace("^t^", unescape(title)).replace("^l^", req.geturl()))
                         except (UnicodeDecodeError) as e:
                             data.target.message("[%sURLScraper%s] %sCould not decode title information!%s" % (Escapes.GREEN, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK))
-                except (HTTPError, IOError) as e:
+                except (HTTPError) as e:
+                    data.target.message("[%sURLScraper%s] %sCould not fetch title information!%s [%s%s%s - %s%s%s]" % (Escapes.GREEN, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.RED, e.code, Escapes.BLACK, Escapes.GREY, str(e.reason), Escapes.BLACK))
+                except (IOError) as e:
                     data.target.message("[%sURLScraper%s] %sCould not fetch title information!%s" % (Escapes.GREEN, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK))
-                    return
 
 __data__ = {
     'name'     : "URLScraper",

@@ -9,6 +9,7 @@ import os, core, sys, logging, traceback
 from core import Plugin, Events, HelpFactory
 from core.Events import Event
 from core.Plugin import Plugin
+from core.PluginLoader import PluginLoader
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
 
@@ -51,7 +52,7 @@ class System(Plugin):
     
     def load_identification(self):
 
-        self.identification = get_connection().pluginloader.get_plugin('IdentificationPlugin')
+        self.identification = PluginLoader.get_instance().get_plugin('IdentificationPlugin')
 
     def handler(self, data):
 

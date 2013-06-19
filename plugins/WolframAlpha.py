@@ -8,9 +8,10 @@
 
 import os, logging, core, sys, traceback
 import xml.etree.cElementTree as xtree
-from core import Plugin, Events, get_connection, util
+from core import Plugin, Events, util
 from core.util import Escapes
 from core.Plugin import Plugin
+from core.PluginLoader import PluginLoader
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from core.util.texttable import TextTable
@@ -25,8 +26,8 @@ class WolframAlpha(Plugin):
     
         self.cache = {}
     
-        self.eventhandler.get_default_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].register(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self._load_identification)
     
         self.connection.tasks.update({
             "WolframAlpha__scheduled_cache_clean":
@@ -41,20 +42,16 @@ class WolframAlpha(Plugin):
     
     def __deinit__(self):
         
-        self.eventhandler.get_default_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_default_events()['PluginsLoadedEvent'].deregister(self._load_identification)
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self._load_identification)
         
         self.scheduler.unschedule_job(
-            self.connection.tasks["WolframAlpha__scheduled_cache_clean"]
+            self.connection.tasks.pop("WolframAlpha__scheduled_cache_clean")
         )
         
-        self.connection.tasks.pop(
-            "WolframAlpha__scheduled_cache_clean"
-        )
-    
     def _load_identification(self):
        
-        self.identification = self.connection.pluginloader.get_plugin("IdentificationPlugin")
+        self.identification = PluginLoader.get_instance().get_plugin("IdentificationPlugin")
     
     def _process_result_block_(self, data):
     

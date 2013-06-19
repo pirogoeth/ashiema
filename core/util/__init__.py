@@ -1,15 +1,16 @@
-import os, re, logging, sys, signal, htmlentitydefs
-
 # ashiema: a lightweight, modular IRC bot written in python.
 # Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
+
+import os, re, logging, sys, signal, htmlentitydefs, ast
 
 all = ['Configuration', 'Escapes', 'texttable', 'apscheduler']
 
 """ these are some various utilities needed for use in the startup process and other parts of runtime """
 
 def fork():
+
     try:
         pid = os.fork()
     except OSError, e:
@@ -32,7 +33,9 @@ def fork():
         os._exit(0)
 
 def unescape(text):
+
     def fixup(m):
+
         text = m.group(0)
         if text[:2] == "&#":
             # character reference
@@ -51,3 +54,14 @@ def unescape(text):
                 pass
         return text # leave as is
     return re.sub("&#?\w+;", fixup, text)
+
+def fix_unicode(text):
+
+    def sub(match):
+
+        if len(match.group(1)) % 2 == 1:
+            return match.group()
+        else:
+            return ur"%s\%s" % (match.group(1), match.group(2))
+    
+    ast.literal_eval("'%s'" % re.sub(ur"(\\+)(')", sub, text))

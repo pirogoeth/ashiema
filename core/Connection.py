@@ -5,15 +5,13 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal, collections
-import EventHandler, Logger, PluginLoader, Tokenizer
+import socket, select, ssl, logging, time, signal, sys, collections, pprint
+import Logger, Tokenizer
 from util import Configuration, apscheduler
 from util.apscheduler import scheduler
 from util.apscheduler.scheduler import Scheduler
 from util.Configuration import Configuration
-from PluginLoader import PluginLoader
 from Tokenizer import Tokenizer
-from EventHandler import EventHandler
 
 class Connection(object):
     """ Connection object to manage the connection 
@@ -24,23 +22,21 @@ class Connection(object):
     @staticmethod
     def get_instance():
         
-        return Connection.__instance
+        if Connection.__instance is None:
+            return Connection()
+        else:
+            return Connection.__instance
 
     def __init__(self):
         """ initialise connection object. """
 
         Connection.__instance = self
     
-        self.configuration = Configuration.get_instance()
-        self.config = self.configuration.get_section('main')
-        self.__conn_hooks__ = self.config.get_string('onconnect', '').split(',')
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
         self._queue = collections.deque()
         self._scheduler = Scheduler()
-        self._evh = EventHandler()
-        self.pluginloader = PluginLoader()
         self.tasks = {}
    
     """ information setup """
@@ -65,11 +61,6 @@ class Connection(object):
     def shutdown(self):
         """ change the self._connection flag to shut down the bot """
         
-        # unload all plugins
-        self.pluginloader.unload()
-        # shut down all leftover apscheduler tasks
-        for task in self.tasks:
-            self.scheduler.unschedule_job(task)
         # shut down the scheduler
         self._scheduler.shutdown()
         # change the value that controls the connection loop
@@ -94,7 +85,6 @@ class Connection(object):
             self.log.warning("Connection type not specified, assuming plain.")
         if password is not None or password is not '':
             self._passrequired, self._password = (True, password)
-        self._evh.load_default_events()
         self.connection.connect((address, int(port)))
         # we're connected!
         self._connected = True
@@ -107,6 +97,7 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
+        data = data.decode('UTF-8', 'ignore')
         self._queue.append(data.encode("UTF-8") + '\r\n')
     
     def _raw_send(self, data):
@@ -116,8 +107,10 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        data = data.decode('UTF-8', 'ignore')
-        self.connection.send(data.encode('UTF-8'))
+        if not data.endswith('\r\n'):
+            data = data + '\r\n'
+
+        self.connection.send(data)
     
     def get_scheduler(self):
         """ returns the scheduler instance. """
@@ -165,9 +158,11 @@ class Connection(object):
                     pass
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
+                    raise
                 _cc += 1
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
+                raise
         # what are we going to do after the loop closes?
         self.log.info("Shutting down.")
         self.connection.close()
@@ -184,4 +179,4 @@ class Connection(object):
              # serialisation.
              line = Tokenizer(line)
              # fire off all events that match the data.
-             self._evh.map_events(line)
+             Tokenizer.process_events(line)

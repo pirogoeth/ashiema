@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core, sys, traceback, threading, random
-from core import Plugin, Events, HelpFactory, get_connection, util
+from core import Plugin, Events, HelpFactory, util
 from core.util import Escapes
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts

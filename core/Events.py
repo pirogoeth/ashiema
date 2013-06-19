@@ -6,12 +6,13 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import logging, time, threading, core, datetime, sys
-import Connection, EventHandler
-
-print >> sys.__stderr__, "Scope of Connection module from the view of core.Events: " + str(dir(Connection))
-
-from util import Configuration
-# from Connection import Connection
+from core.util import Configuration
+import Connection, EventHandler, Structures
+from core.util.Configuration import Configuration
+from Connection import Connection
+from EventHandler import EventHandler
+from PluginLoader import PluginLoader
+from Structures import Channel
 
 class Event(object):
     """ This is the base event class that should be subclassed by all other events
@@ -25,6 +26,9 @@ class Event(object):
 
         self.name = event_name
         self.callbacks = {}
+
+        self.get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
+        self.get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
         
     def __repr__(self):
 
@@ -185,7 +189,8 @@ class RFCEvent(Event):
         self.__register__()
         
         self.connection = Connection.get_instance()
-        self.config = self.connection.configuration.get_section('main')
+        self.config = Configuration.get_instance().get_section('main')
+        self.__conn_hooks__ = self.config.get_string('onconnect', '').split(',')
     
     def match(self, data):
 
@@ -203,21 +208,24 @@ class RFCEvent(Event):
             # RPL_YOURHOST
             logging.getLogger('ashiema').info('<- %s' % (data.message))
         elif data.type.to_i() == 353:
-            # RPL_NAMREPLY
+            # RPL_NAMEREPLY
             pass
         elif data.type.to_i() == 376:
             # RPL_ENDOFMOTD
-            if "join" in self.connection.__conn_hooks__:
+            if "join" in self.__conn_hooks__:
                 channel = self.config.get_string('channel', None)
                 key = self.config.get_string('chan_key', None)
                 self.connection.send(Channel.join(channel, key))
-            if "pluginload" in self.connection.__conn_hooks__:
-                self.connection.pluginloader.load()
+            if "pluginload" in self.__conn_hooks__:
+                PluginLoader.get_instance().load()
         elif data.type.to_i() == 433:
             # ERR_NICKNAMEINUSE
             logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
             self.connection.shutdown()
-        return
+        
+        if self.callbacks is not None:
+            for function in self.callbacks.values():
+                function(data)
 
 class MessageEvent(Event):
 
@@ -351,4 +359,3 @@ def get_events():
              'QuitEvent'         : UserQuitEvent(),
              'PluginsLoadedEvent': PluginsLoadedEvent() # system triggered events
            }
-

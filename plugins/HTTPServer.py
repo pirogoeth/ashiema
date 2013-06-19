@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, datetime, pprint, StringIO
-from core import Plugin, Events, get_connection, util
+from core import Plugin, Events, util
 from core.util import Escapes, unescape, fork
 from core.Events import Event
 from core.Plugin import Plugin

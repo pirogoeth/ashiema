@@ -6,9 +6,9 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import logging, util, os, errno
-from core.Connection import Connection
-from core.EventHandler import EventHandler
-from core.PluginLoader import PluginLoader
+from Connection import Connection
+from EventHandler import EventHandler
+from PluginLoader import PluginLoader
 from util import Configuration
 from util.Configuration import Configuration, ConfigurationSection
 

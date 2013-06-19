@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import Events, logging, traceback, sys
+import logging, traceback, sys
 
 class EventHandler(object):
 
@@ -14,14 +14,16 @@ class EventHandler(object):
     @staticmethod
     def get_instance():
 
-        return EventHandler.__instance
+        if EventHandler.__instance is None:
+            return EventHandler()
+        else:
+            return EventHandler.__instance
 
     def __init__(self):
 
         EventHandler.__instance = self
 
         self.events = {}
-        self.load_events()
 
     def __repr__(self):
 
@@ -30,13 +32,6 @@ class EventHandler(object):
     def __call__(self):
 
         return self.events
-
-    def load_events(self):
-        """ loads all core provided events """
-        
-        events = Events.get_events()
-        self.events.update(events)
-        logging.getLogger('ashiema').info("Loaded %d default events." % (len(events)))
 
     def get_events(self):
         """ returns the events that have been loaded by the system. """

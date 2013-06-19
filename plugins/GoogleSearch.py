@@ -5,9 +5,9 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, re, json, htmlentitydefs
-from core import Plugin, Events, get_connection, util
-from core.util import Escapes, unescape
+import os, logging, core, sys, traceback, re, json
+from core import Plugin, Events, util
+from core.util import Escapes, unescape, fix_unicode
 from core.Plugin import Plugin
 from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
@@ -33,7 +33,7 @@ class GoogleSearch(Plugin):
         )
         
         self.url = "https://ajax.googleapis.com/ajax/services/search/web?"
-        self.prefix = "%sG%so%so%sg%sl%se%s" % (Escapes.BLUE, Escapes.RED, Escapes.YELLOW, Escapes.BLUE, Escapes.GREEN, Escapes.RED, Escapes.BLACK)
+        self.prefix = "%sG%so%so%sg%sl%se%s" % (Escapes.BLUE, Escapes.RED, Escapes.YELLOW, Escapes.BLUE, Escapes.GREEN, Escapes.RED, Escapes.COLOURED)
         
     def __deinit__(self):
     
@@ -61,8 +61,12 @@ class GoogleSearch(Plugin):
                     return
                 title, url = self.cache[query]
                 # display result
-                data.respond_to_user("[" + self.prefix + "Search]: %s%s%s, %s" % (Escapes.BOLD, title, Escapes.BOLD, url))
-                return
+                try:
+                    data.respond_to_user("[" + self.prefix + "Search]: %s%s%s, %s" % (Escapes.BOLD, title, Escapes.BOLD, url))
+                    return
+                except (UnicodeEncodeError):
+                    data.respond_to_user("[" + self.prefix + "Search]: %sIncomplete Search%s, %s" % (Escapes.BOLD, Escapes.BOLD, url))
+                    return
             data.respond_to_user("[" + self.prefix + "Search]: Searching...")
             target_url = self.url + "%s" % (
                 urlencode(

@@ -6,11 +6,12 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core, sys, traceback, re, json, htmlentitydefs
-from core import Plugin, Events, get_connection, util
+from core import Plugin, Events, util
 from core.util import Escapes
 from core.util import unescape
 from core.util.texttable import TextTable
 from core.Plugin import Plugin
+from core.PluginLoader import PluginLoader
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
@@ -43,16 +44,12 @@ class UrbanDictionary(Plugin):
         self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self._load_identification)
         
         self.scheduler.unschedule_job(
-            self.connection.tasks["UrbanDictionary__scheduled_cache_clean"]
+            self.connection.tasks.pop("UrbanDictionary__scheduled_cache_clean")
         )
-        
-        self.connection.tasks.pop(
-            "UrbanDictionary__scheduled_cache_clean"
-        )
-    
+
     def _load_identification(self):
     
-        self.identification = self.connection.pluginloader.get_plugin("IdentificationPlugin")
+        self.identification = PluginLoader.get_instance().get_plugin("IdentificationPlugin")
     
     def clean_cache(self):
     

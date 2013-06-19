@@ -6,10 +6,10 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, core
-from core import Plugin, Event, get_connection, util
+from core import Plugin, Events, util
 from core.util import Escapes
 from core.Plugin import Plugin
-from core.HelpFactory import Contexts
+from core.HelpFactory import Contexts, Filters, HelpFactory
 from core.HelpFactory import CONTEXT, PARAMS, DESC, NAME, ALIASES
 
 class HelpFactoryInterface(Plugin):
@@ -18,7 +18,7 @@ class HelpFactoryInterface(Plugin):
         
         Plugin.__init__(self, needs_dir = False)
         
-        self.helpfactory = self.connection.pluginloader.helpfactory
+        self.helpfactory = HelpFactory.get_instance()
         
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PMEvent'].register(self.handler)
