@@ -18,7 +18,8 @@ class ConfigurationSection(dict):
     def __getitem__(self, key):
     
         try: return dict.__getitem__(self, key)
-        except (IndexError, KeyError) as e: return None
+        except (IndexError, KeyError) as e:
+            raise KeyError("Unknown configuration key '%s'." % (key))
     
     def __setitem__(self, key, value):
     

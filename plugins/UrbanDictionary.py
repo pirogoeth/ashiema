@@ -105,7 +105,7 @@ class UrbanDictionary(Plugin):
                 if response['result_type'] == 'no_response':
                     data.target.message("%s[UrbanDictionary]%s: %s%s%s is not defined yet." % (Escapes.BOLD, Escapes.BOLD, Escapes.RED, term, Escapes.RED))
                     return
-                definitions = response['list']
+                definitions = response['list'][0:4]
                 try:
                     for definition in definitions:
                         data.target.privmsg(" - %sDefinition%s: " % (Escapes.BLUE, Escapes.BLUE) + definition['definition'])

@@ -142,9 +142,6 @@ class WolframAlpha(Plugin):
                 header_pod = response.pop(0)
                 result_tables = [TextTable() for pod in response]
                 pod_data = [pod[1] for pod in response]
-                print result_tables
-                print header_pod
-                print response
                 result_tables[0].header = header_pod[1][0].title()
                 i = 0
                 while i < len(result_tables):

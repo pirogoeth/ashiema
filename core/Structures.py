@@ -11,6 +11,33 @@ import Connection
 class Channel(object):
 
     __channels = {}
+    
+    @staticmethod
+    def format_topic(channel, topic):
+    
+        return "TOPIC %s :%s" % (channel, topic)
+
+    @staticmethod
+    def format_privmsg(channel, message):
+    
+        return "PRIVMSG %s :%s" % (channel, message)
+
+    @staticmethod
+    def format_notice(channel, message):
+    
+        return "NOTICE %s :%s" % (channel, message)
+
+    @staticmethod
+    def format_join(channel, key = None):
+    
+        if key is not None:
+            return "JOIN %s" % (channel)
+        return "JOIN %s :%s" % (channel, key)
+
+    @staticmethod
+    def format_kick(channel, username, reason = "Your behaviour is not conductive to the desired environment."):
+    
+        return "KICK %s %s :%s" % (channel, username, reason)
 
     def __init__(self, channel):
 
@@ -31,8 +58,8 @@ class Channel(object):
         """ assembles a join message. """
         
         if key is None:
-            message = "JOIN %s" % (channel)
-        else: message = "JOIN %s :%s" % (channel, key)
+            message = Channel.format_join(channel)
+        else: message = Channel.format_join(channel, key)
         
         return message
 
@@ -47,26 +74,26 @@ class Channel(object):
     def message(self, *data):
 
         for slice in data:
-            message = "PRIVMSG %s :%s" % (self.name, slice)
+            message = Channel.format_privmsg(self.name, slice)
             self.connection.send(message)
 
     privmsg = message
     
     def notice(self, data):
 
-        message = "NOTICE %s :%s" % (self.name, data)
+        message = Channel.format_notice(self.name, data)
         
         self.connection.send(message)
     
     def set_topic(self, data):
 
-        message = "TOPIC %s :%s" % (self.name, data)
+        message = Channel.format_topic(self.name, data)
         
         self.connection.send(message)
     
     def kick(self, user, reason = 'Your behaviour is not conductive to the desired environment'):
 
-        message = "KICK %s %s :%s" % (self.name, user, reason)
+        message = Channel.format_kick(self.name, user, reason)
         
         self.connection.send(message)
 
@@ -151,6 +178,16 @@ class Type(object):
 
 class User(object):
     
+    @staticmethod
+    def format_notice(user, message):
+    
+        return "NOTICE %s :%s" % (user, message)
+
+    @staticmethod
+    def format_privmsg(user, message):
+    
+        return "PRIVMSG %s :%s" % (user, message)
+
     def __init__(self, userstring):
 
         self.pattern = re.compile(r"""([^!].+)!(.+)@(.*)""", re.VERBOSE)
@@ -178,14 +215,14 @@ class User(object):
     def message(self, *data):
 
         for slice in data:
-            message = "PRIVMSG %s :%s" % (self.nick, slice)
+            message = User.format_privmsg(self.nick, slice)
             self.connection.send(message)
     
     privmsg = message
     
     def notice(self, data):
 
-        message = "NOTICE %s :%s" % (self.nick, data)
+        message = User.format_notice(self.nick, data)
         
         self.connection.send(message)
     

@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import imp, util, os, logging, traceback, core
+import imp, util, os, logging, traceback, core, collections
 from imp import load_source
 from EventHandler import EventHandler
 from HelpFactory import HelpFactory, Contexts
@@ -41,8 +41,9 @@ class PluginLoader(object):
         # assertion
         self._loaded = False
 
-        # skip loads
-        self._skip = Configuration.get_instance().get_section('plugins').get_string('skip_on_load', None).split(',') or []
+        # plugin list and listing type
+        self._list_type = Configuration.get_instance().get_section('plugins').get_string('list-type', 'blacklist').lower()
+        self._list = Configuration.get_instance().get_section('plugins').get_string('list', '').split(',') or []
     
     def __call__(self):
 
@@ -52,15 +53,6 @@ class PluginLoader(object):
 
         return self()[plugin]
         
-    def get_plugin(self, plugin):
-
-        assert self._loaded is True, 'Plugins have not yet been loaded.'
-        
-        try: return self.loaded[plugin]
-        except:
-            [self.log.error(trace) for trace in traceback.format_exc(6).split('\n')]
-            return None
-
     def __depcheck__(self, container):
 
         try:
@@ -74,6 +66,15 @@ class PluginLoader(object):
         except (RuntimeError): return {}
         return container
     
+    def get_plugin(self, plugin):
+
+        assert self._loaded is True, 'Plugins have not yet been loaded.'
+        
+        try: return self.loaded[plugin]
+        except:
+            [self.log.error(trace) for trace in traceback.format_exc(6).split('\n')]
+            return None
+
     """ load, reload, unload """
     def load(self):
 
@@ -93,7 +94,8 @@ class PluginLoader(object):
                 [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
                 continue
             if not hasattr(source, '__data__'): continue
-            if source.__data__['name'] in self._skip: continue
+            if self._list_type is 'blacklist' and source.__data__['name'] in self._list: continue
+            elif self._list_type is 'whitelist' and source.__data__['name'] not in self._list: continue
             self.container.update(
                 {
                     source.__data__['name']:

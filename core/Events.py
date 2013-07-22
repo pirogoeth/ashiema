@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, time, threading, core, datetime, sys
+import logging, time, core, datetime, sys
 from core.util import Configuration
 import Connection, EventHandler, Structures
 from core.util.Configuration import Configuration
@@ -27,7 +27,6 @@ class Event(object):
         self.name = event_name
         self.callbacks = {}
 
-        self.get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
         self.get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
         
     def __repr__(self):

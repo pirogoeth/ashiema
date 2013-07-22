@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # ashiema: a lightweight, modular IRC bot written in python.
 # Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
@@ -46,7 +46,7 @@ def main(conf_file):
         real     = config.get_string('real', 'ashiema IRC bot -- http://github.com/pirogoeth/ashiema')
     )
 
-    if config.get_bool('fork'):
+    if config.get_bool('fork', False):
         fork()
 
     try:

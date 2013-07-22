@@ -18,7 +18,7 @@ from datetime import datetime
 from sys import exc_info
 from traceback import format_tb
 from StringIO import StringIO
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from wsgiref.simple_server import make_server
 
 class HTTPServer(Plugin):
@@ -45,21 +45,26 @@ class HTTPServer(Plugin):
 
     def __init__(self):
 
-        Plugin.__init__(self, needs_dir = True)
+        Plugin.__init__(self, needs_dir = True, needs_comm_pipe = True)
 
         HTTPServer.running = False
+        self.request_handlers = dict()
 
         self.config = self.get_plugin_configuration()
+        
+        self.__vars__ = {
+            'resources' : self.config['resource_path']
+        }
         
         if len(self.config) == 0:
             raise Exception("You must configure options for the HTTP server in your server config!")
 
-        self.resource_path = self.config['resource_path']
+        self.resource_dir = self.config['resource_path']
 
-        if self.resource_path[0] == '/':
-            self.resource_path = self.resource_path[1:]
+        if self.resource_dir[0] == '/':
+            self.resource_dir = self.resource_dir[1:]
         
-        self.resource_path = self.get_path() + self.resource_path
+        self.resource_path = self.get_path() + self.resource_dir
 
         self.resource_route = self.config['resource_route']
         
@@ -73,7 +78,6 @@ class HTTPServer(Plugin):
                 if e.errno != errno.EEXIST:
                     raise
         
-        self.request_handlers = {}
         self.__process = None
         
         self.__load_layers()
@@ -94,6 +98,10 @@ class HTTPServer(Plugin):
 
     def __on_plugins_loaded(self):
         
+        self.identification = self.get_plugin('IdentificationPlugin')
+
+        self.__register_resource_handler(self.resource_path, self.resource_route)
+
         if self.config['autostart']:
             self.__start()
     
@@ -102,8 +110,6 @@ class HTTPServer(Plugin):
         if HTTPServer.running:
             return
         
-        self.__register_resource_handler(self.resource_path, self.resource_route)
-
         bind_host = self.config['bind_host']
         bind_port = int(self.config['bind_port'])
         
@@ -115,7 +121,8 @@ class HTTPServer(Plugin):
     
         class WSGIServerProcess(Process):
         
-            def __init__(self, host, port, router):
+            def __init__(self, host, port, router, gethandlers):
+
                 Process.__init__(self, name = "ashiema WSGI/HTTP server process")
 
                 self.host = host
@@ -124,11 +131,15 @@ class HTTPServer(Plugin):
                 self.daemon = True
                 self.__router = router
                 self.__server = make_server(self.host, self.port, self.__router)
+                
+                print str(gethandlers())
 
             def set_active(self, active):
+
                 self.active = active
             
             def run(self):
+
                 self.active = True
                 while self.active:
                     try:
@@ -136,16 +147,23 @@ class HTTPServer(Plugin):
                         self.__server.handle_request()
                     except (SystemExit, KeyboardInterrupt) as e:
                         self.__server.server_close()
+                        self.__server.socket.close()
                         return
+                logging.getLogger('ashiema').info('HTTPServer no longer active.')
                 self.__server.server_close()
+                self.__server.socket.close()
 
-        self.__process = WSGIServerProcess(host, port, self.__router)
+        self.__process = WSGIServerProcess(host, port, self.__router, self.__get_reqhands)
         self.__process.start()
         self.log_debug("Started WSGI server in child process [ID: %s]." % (self.__process.pid))
 
+    def __get_reqhands(self):
+    
+        return self.request_handlers.values()
+
     def __stop(self):
         
-        if not HTTPServer.running:
+        if not HTTPServer.running or not self.__process:
             return
         
         HTTPServer.running = False
@@ -155,7 +173,21 @@ class HTTPServer(Plugin):
 
         self.log_info("Terminating child process...")
         self.__process.terminate()
+        
+        del self.__process
     
+    def __restart(self):
+    
+        if not HTTPServer.running:
+            self.log_error("Can not restart, HTTPServer is not running.", "Use __start() to launch the HTTPServer.")
+            return
+        
+        self.__stop()
+        
+        self.log_info("Restarting HTTPServer...")
+        
+        self.__start()
+
     def __load_layers(self):
     
         # load the exception layer
@@ -165,6 +197,8 @@ class HTTPServer(Plugin):
     def __router(self, environment, start_response):
         
         request_path = environment.get('PATH_INFO', '').lstrip('/')
+
+        print self.request_handlers.values()
 
         for handler in self.request_handlers.values():
             match = re.search(handler.get_raw_route(), request_path)
@@ -188,6 +222,7 @@ class HTTPServer(Plugin):
                     'path'          : environment.get('PATH_INFO', ''),
                     'env'           : environment
                 })
+                templater.update_globals(self.__vars__)
                 templater.options()['input'] = template
                 templater.options()['output'] = rendered
                 templater.parse()
@@ -228,21 +263,21 @@ class HTTPServer(Plugin):
 
     def handler(self, data):
     
-        if data == (0, '@httpd-start'):
+        if data.message == (0, '@httpd-start'):
             assert self.identification.require_level(data, 2)
             if HTTPServer.running:
                 data.respond_to_user("The HTTP server is already running.")
             elif not HTTPServer.running:
                 self.__start()
                 data.respond_to_user("The HTTP server is starting...")
-        elif data == (0, '@httpd-stop'):
+        elif data.message == (0, '@httpd-stop'):
             assert self.identification.require_level(data, 2)
             if not HTTPServer.running:
                 data.respond_to_user("The HTTP server is not running.")
             elif HTTPServer.running:
                 self.__stop()
                 data.respond_to_user("The HTTP server is stopping...")
-        elif data == (0, '@httpd-status'):
+        elif data.message == (0, '@httpd-status'):
             assert self.identification.require_level(data, 1)
             if HTTPServer.running:
                 data.respond_to_user("The HTTP server is currently active.")
@@ -262,6 +297,14 @@ class HTTPServer(Plugin):
     def deregister_handler(self, handler):
         
         self.request_handlers.remove(handler.get_name())
+
+    def get_handler_class(self):
+
+        return HTTPRequestHandler
+
+    def get_templater_class(self):
+
+        return Templating
 
 class HTTPRequestHandler(object):
 
@@ -287,6 +330,8 @@ class HTTPRequestHandler(object):
             'NOT_IMPLEMENTED'       : "501 NOT IMPLEMENTED"
         }
     
+
+
     def get_name(self):
 
         return self.name

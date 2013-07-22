@@ -6,12 +6,15 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, core, sys, logging, traceback
-from core import Plugin, Events, HelpFactory
+from core import Connection, Plugin, Events, HelpFactory
+from core.Connection import Connection
 from core.Events import Event
 from core.Plugin import Plugin
 from core.PluginLoader import PluginLoader
 from core.HelpFactory import Contexts
 from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
+from core.util import Configuration
+from core.util.Configuration import Configuration
 
 class SystemEvent(Event):
 
@@ -30,7 +33,7 @@ class SystemEvent(Event):
         # 0 -> reload
         # 1 -> shutdown
         # 2 -> rehash
-        self.log_info('Waiting for plugins to finish up...')
+        logging.getLogger('ashiema').info('Waiting for plugins to finish up...')
         for callback in self.callbacks.values():
             callback(data)
 
@@ -62,13 +65,13 @@ class System(Plugin):
             # System event code 1 -> shutdown
             self.eventhandler.fire_once(self.system_event, (1,))
             data.origin.message('Shutting down..')
-            get_connection().shutdown()
+            Connection.get_instance().shutdown()
         elif data.message == (0, 'reload'):
             assert self.identification.require_level(data, 2)
             # System event code 0 -> reload
             self.eventhandler.fire_once(self.system_event, (0,))
             try:
-                get_connection().pluginloader.reload()
+                PluginLoader.get_instance().reload()
             except Exception, e:
                 data.origin.message("Exception %s while reloading plugins." % (e))
                 [self.log_error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
@@ -78,7 +81,7 @@ class System(Plugin):
             assert self.identification.require_level(data, 2)
             # System event code 2 -> rehash
             self.eventhandler.fire_once(self.system_event, (2,))
-            get_connection().configuration.reload()
+            Configuration.get_instance().reload()
             data.origin.message('Rehash completed!')
 
 __data__ = {

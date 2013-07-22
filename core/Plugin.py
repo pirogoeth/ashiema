@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, util, os, errno
+import logging, util, os, errno, multiprocessing
 from Connection import Connection
 from EventHandler import EventHandler
 from PluginLoader import PluginLoader
@@ -15,7 +15,7 @@ from util.Configuration import Configuration, ConfigurationSection
 class Plugin(object):
     """ this is the plugin implementation. """
     
-    def __init__(self, needs_dir = False):
+    def __init__(self, needs_dir = False, needs_comm_pipe = False):
         # you need to register events and commands and such right in here.
         
         self.connection = Connection.get_instance()
@@ -38,6 +38,12 @@ class Plugin(object):
             except OSError as e:
                 if exception.errno != errno.EEXIST:
                     raise
+        
+        # set up the comm pipe
+        if needs_comm_pipe:
+            self.__pipe = self.connection.get_send_pipe()
+        else: 
+            self.__pipe = None
     
     def __deinit__(self):
         # you need to deregister events and commands right here. this will be called by the plugin loader.
@@ -100,3 +106,14 @@ class Plugin(object):
         """ send data to the logger with level `critical`. """
         
         [self.logger.critical('[' + self.name + '] ' + message) for message in args]
+    
+    def allows_pipe(self):
+        """ returns whether or not this plugin has comm pipe usage enabled """
+        
+        return self.__pipe is not None
+
+    def push_data(self, *args):
+        """ send data through the comm pipe, if it is enabled. """
+
+        try: [self.__pipe.send(data) for data in args]
+        except: return

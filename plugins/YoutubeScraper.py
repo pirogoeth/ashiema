@@ -21,7 +21,7 @@ class YoutubeScraper(Plugin):
         self.regexp = r"""(?:https?://(?:www.|)youtube.com/(?:watch\?v=([\w-]*)))"""
         self.pattern = re.compile(self.regexp, re.VERBOSE)
         
-        self.format = "[%sYou%sTube%s] %s&t%s - %s&a%s" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
+        self.format = "[%sYou%sTube%s] %s&t%s [&d minutes] - %s&a%s" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
         self.apiurl = "http://gdata.youtube.com/feeds/api/videos/%s?v=2&alt=jsonc"
         
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
@@ -41,7 +41,7 @@ class YoutubeScraper(Plugin):
                 try:
                     with closing(urlopen(self.apiurl % (id))) as req:
                         info = json.loads(req.read(), encoding = 'utf-8')
-                        data.target.message(self.format.replace("&t", info['data']['title']).replace("&a", info['data']['uploader']))
+                        data.target.message(self.format.replace("&t", info['data']['title']).replace("&a", info['data']['uploader']).replace("&d", str(int(info['data']['duration']) / 60)))
                 except (HTTPError, IOError) as e:
                     data.target.message("[%sYou%sTube%s] Invalid video link!" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK))
 

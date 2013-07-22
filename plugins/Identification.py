@@ -18,26 +18,28 @@ class IdentificationPlugin(Plugin):
         Plugin.__init__(self, needs_dir = True)
         
         self.eventhandler.get_events()['PMEvent'].register(self.handler)
-        self.eventhandler.get_events()['SystemEvent'].register(self.sys_handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.sys_handler)
         
         self.logins = {}
+        self.accounts = {}
         self._opened = False
 
         self.__open_shelve__()
+
+        self.__depersist_logins__()
         
     def __deinit__(self):
 
         self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['SystemEvent'].deregister(self.sys_handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.sys_handler)
+        
+        self.__persist_logins__()
         
         self.__close_shelve__()
     
     def __open_shelve__(self):
 
         try:
-            self.shelf = shelve.open(self.get_path() + "users.db", protocol = 2, writeback = True)
+            self.shelf = shelve.open(self.get_path() + "users", protocol = 0, writeback = True)
+            self.accounts.update(self.shelf)
         except Exception as e:
             self.shelf = None
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
@@ -47,6 +49,7 @@ class IdentificationPlugin(Plugin):
 
         assert self._opened, "Shelf is not opened."
         
+        self.shelf.update(self.accounts)
         self.shelf.sync()
         self.shelf.close()
     
@@ -55,10 +58,18 @@ class IdentificationPlugin(Plugin):
         assert self._opened, "Accounts not loaded."
         
         if len(self.logins) == 0:
+            print 'no logins to persist'
             pass
         
+        _path = self.get_path() + "persist.db"
+        
+        if not os.path.isfile(_path):
+            return
+        
         try:
-            persistance_shelf = shelve.open(self.get_path() + "persist", protocol = 2, writeback = True)
+            persistance_shelf = shelve.open(self.get_path() + "persist.db", protocol = 0, writeback = True)
+            print 'persisting'
+            print self.logins
             persistance_shelf.update(self.logins)
             persistance_shelf.sync()
             persistance_shelf.close()
@@ -76,7 +87,9 @@ class IdentificationPlugin(Plugin):
             return
         
         try:
-            persistance_shelf = shelve.open(self.get_path() + "persist", protocol = 2, writeback = True)
+            persistance_shelf = shelve.open(self.get_path() + "persist.db", protocol = 0, writeback = True)
+            print 'de-persisting'
+            print persistance_shelf
             self.logins.update(persistance_shelf)
             persistance_shelf.close()
         except Exception as e:
@@ -91,7 +104,7 @@ class IdentificationPlugin(Plugin):
 
         assert self._opened, "Shelf is not opened."
         
-        return username in self.shelf
+        return username in self.accounts
     
     def __check_login__(self, origin):
 
@@ -107,38 +120,35 @@ class IdentificationPlugin(Plugin):
             data.origin.message('Please log in to use this function.')
             return False
         relative = self.logins[str(data.origin)]
-        level_r = self.shelf[relative]['level']
+        level_r = self.accounts[relative]['level']
         if level_r < level:
             data.origin.message('You do not have the permissions required to use this command.')
             return False
         elif level_r >= level:
             return True
     
-    def sys_handler(self, sys_event_code = None):
-    
-        if isinstance(sys_event_code, tuple):
-            code = sys_event_code[0]
-        elif sys_event_code is None:
-            code = None
-
-        if code is 0:
-            self.__persist_logins__()
-        elif code is None:
-            self.__depersist_logins__()    
-
     def handler(self, data):
 
         if data.message == (0, 'login'):
             try: 
-                username = data.message[1]
-                password = data.message[2]
+                if len(data.message[1:]) == 2:
+                    username = data.message[1]
+                    password = data.message[2]
+                elif len(data.message[1:]) == 1:
+                    username = data.origin.nick
+                    password = data.message[1]
+                else:
+                    raise IndexError('Invalid number of arguments specified')
             except (IndexError):
                 data.origin.message('Invalid parameters.')
                 return
             if not self.__check_user__(username):
                 data.origin.message('Invalid username.')
                 return
-            if self.__check_user__(username) and md5(password) == self.shelf[username]['password']:
+            if self.__check_login__(data.origin.to_s()):
+                data.origin.message('You are already logged in.')
+                return
+            elif self.__check_user__(username) and md5(password) == self.accounts[username]['password']:
                 self.logins.update(
                     {
                         data.origin.to_s(): username
@@ -146,7 +156,7 @@ class IdentificationPlugin(Plugin):
                 )
                 data.origin.message('Logged in as %s%s%s.' % (Escapes.BOLD, username, Escapes.BOLD))
                 return
-            elif md5(password) != self.shelf[username]['password']:
+            elif md5(password) != self.accounts[username]['password']:
                 data.origin.message('Invalid password.')
                 return
         elif data.message == (0, 'logout'):
@@ -164,7 +174,7 @@ class IdentificationPlugin(Plugin):
                 data.origin.message('Invalid parameters.')
                 return
             if len(password) >= 8:
-                self.shelf.update(
+                self.accounts.update(
                     {
                         username: {
                                 'password' : md5(password),
@@ -173,7 +183,7 @@ class IdentificationPlugin(Plugin):
                     }
                 )
                 data.origin.message('Registered as %s.' % (username))
-                self.shelf.sync()
+                self.accounts.sync()
                 return
             else:
                 data.origin.message('Password %smust%s be greater than or equal to eight characters.' % (Escapes.BOLD, Escapes.BOLD))
@@ -187,7 +197,7 @@ class IdentificationPlugin(Plugin):
                 data.origin.message('Invalid parameters.')
                 return
             if self.__check_user__(data.origin.to_s()):
-                if self.shelf[data.origin.to_s()]['level'] == 2:
+                if self.accounts[data.origin.to_s()]['level'] == 2:
                     if username not in self.shelve:
                         data.origin.message('Invalid username.')
                         return
@@ -200,7 +210,7 @@ class IdentificationPlugin(Plugin):
                         }
                     )
                     data.origin.message('Set permission level for %s%s%s to %s%d%s.' % (Escapes.BOLD, username, Escapes.BOLD, Escapes.BOLD, levelEscapes.BOLD))
-                    self.shelf.sync()
+                    self.accounts.sync()
                     return
                 else:
                     data.origin.message('You do not have access to permission levels.')

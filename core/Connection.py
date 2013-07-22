@@ -5,13 +5,12 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal, sys, collections, pprint
-import Logger, Tokenizer
+import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback
+import Logger, EventHandler, Structures, PluginLoader
 from util import Configuration, apscheduler
 from util.apscheduler import scheduler
 from util.apscheduler.scheduler import Scheduler
 from util.Configuration import Configuration
-from Tokenizer import Tokenizer
 
 class Connection(object):
     """ Connection object to manage the connection 
@@ -36,6 +35,7 @@ class Connection(object):
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
         self._queue = collections.deque()
+        self._comm_pipe_recv, self._comm_pipe_send = multiprocessing.Pipe(False)
         self._scheduler = Scheduler()
         self.tasks = {}
    
@@ -107,6 +107,9 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
+        if data.strip() == '':
+            return
+
         if not data.endswith('\r\n'):
             data = data + '\r\n'
 
@@ -116,6 +119,11 @@ class Connection(object):
         """ returns the scheduler instance. """
         
         return self._scheduler
+    
+    def get_send_pipe(self):
+        """ returns the sending end of our comms pipe. """
+        
+        return self._comm_pipe_send
    
     def run(self):
         """ runs the polling loop. 
@@ -159,6 +167,15 @@ class Connection(object):
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
+                # process queued plugin data
+                try:
+                    if self._comm_pipe_recv.poll(.025):
+                        self.send(self._comm_pipe_recv.recv())
+                except (EOFError, IOError):
+                    pass
+                except (KeyboardInterrupt, SystemExit) as e:
+                    self.shutdown()
+                    raise
                 _cc += 1
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
@@ -180,3 +197,56 @@ class Connection(object):
              line = Tokenizer(line)
              # fire off all events that match the data.
              Tokenizer.process_events(line)
+
+class Tokenizer(object):
+    """ convert a line into a fielded object """
+
+    @staticmethod
+    def process_events(data):
+        
+        EventHandler.EventHandler.get_instance().map_events(data)
+
+    def __init__(self, data):
+
+        self._raw = data
+        self.connection = Connection.get_instance()
+        self.eventhandler = EventHandler.EventHandler.get_instance()
+        # this regular expression splits an IRC line up into four parts:
+        # ORIGIN, TYPE, TARGET, MESSAGE
+        regex = "^(?:\:([^\s]+)\s)?([A-Za-z0-9]+)\s(?:([^\s\:]+)\s)?(?:\:?(.*))?$"
+        # a regular expression to match and dissect IRC protocol messages
+        # this is around 60% faster than not using a RE
+        p = re.compile(regex, re.VERBOSE)
+        try:
+            self.origin, self.type, self.target, self.message = (None, None, None, None)
+            self._origin, self._type, self._target, self._message = p.match(data).groups()
+            # take each token and initialise the appropriate structure.
+            self.origin = Structures.User(self._origin) if self._origin is not None else None
+            self.type = Structures.Type(self._type) if self._type is not None else None
+            if self._target.startswith('#', 0, 1) is True:
+                self.target = Structures.Channel(self._target) if self._target is not None else None
+            else: self.target = Structures.User(self._target) if self._target is not None else None
+            self.message = Structures.Message(self._message)
+        except (AttributeError):
+            pass
+        try:
+            if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
+                if self.type and self.message:
+                    logging.getLogger('ashiema').debug("%s %s %s %s" % (str(self.origin), str(self.type), str(self.target), str(self.message)))
+        except:
+            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(5).split('\n')]
+            pass
+    
+    def get_raw(self):
+
+        return self._raw
+    
+    def respond_to_user(self, message, prefer_notice = True):
+
+        if self.target.is_self():
+            if prefer_notice:
+                self.origin.notice(message)
+            else:
+                self.origin.message(message)
+        else:
+            self.target.message(message)

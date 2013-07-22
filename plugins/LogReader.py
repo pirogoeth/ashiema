@@ -1,0 +1,253 @@
+#!/usr/bin/env bash
+
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
+
+import os, sys, time, logging, shelve, traceback
+from core import Plugin, Events, Structures
+from core.util import Escapes, unescape
+from core.Events import Event
+from core.Plugin import Plugin
+from core.PluginLoader import PluginLoader
+from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
+from core.Structures import Channel
+from multiprocessing import Process
+
+class LogReader(Plugin):
+
+    """ This is a faux-threaded plugin that reads all the files defined in a list
+        and reports content into a specified channel. Useful for tracking system logs and watching
+        for break-in attempts. """
+    
+    def __init__(self):
+    
+        Plugin.__init__(self, needs_dir = True, needs_comm_pipe = True)
+        
+        LogReader.reading = False
+        
+        self.config = self.get_plugin_configuration();
+        
+        self.filters = {}
+        self.__process = None
+        
+        if len(self.config) == 0:
+            raise Exception("You must configure options for the log watcher (LogReader) in your configuration!")
+        
+        self.channel = self.config['channel']
+        self.files = self.config['files'].split(',')
+        
+        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
+        
+        self.__load_filters__()
+    
+    def __deinit__(self):
+    
+        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__on_plugins_loaded)
+        
+        self.__stop()
+
+        self.__unload_filters__()
+    
+    def __load_filters__(self):
+    
+        try:
+            self.shelf = shelve.open(self.get_path() + 'filters', protocol = 0, writeback = True)
+            self.filters.update(self.shelf)
+        except Exception as e:
+            self.filters = None
+            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+    
+    def __unload_filters__(self):
+    
+        if self.filters is not None and self.shelf is not None:
+            self.shelf.update(self.filters)
+            self.shelf.sync()
+            self.shelf.close()
+
+    def __on_plugins_loaded(self):
+    
+        self.identification = self.get_plugin("IdentificationPlugin")
+    
+        self.__start()
+    
+    def __start(self):
+    
+        if LogReader.reading:
+            return
+        
+        LogReader.reading = True
+        
+        self.__begin_read(self.files)
+    
+    def __begin_read(self, file_list):
+    
+        class LogFilter(object):
+
+            def __init__(self, plugin, channel, filters):
+
+                self.plugin = plugin
+                self.channel = channel
+                self.filters = filters
+
+            def process(self, line):
+
+                term, instruction, data = None, None, None
+
+                for _term, _instruction in self.filters.iteritems():
+                    if _term in line:
+                        term, instruction = _term, _instruction.upper()
+                        break
+                    continue
+
+                if instruction == "IGNORE":
+                    data = None
+                elif instruction == "MARK":
+                    data = Channel.format_privmsg(self.channel, "%s%s" % (Escapes.BOLD, line))
+                elif instruction == "WARNING":
+                    data = Channel.format_privmsg(self.channel, "%s%s" % (Escapes.RED, line))
+                elif instruction == "IMPORTANT":
+                    data = Channel.format_privmsg(self.channel, "%s%s%s" % (Escapes.BOLD, Escapes.RED, line))
+                elif term is not None and instruction is not None: #invalid filter term matched
+                    self.plugin.log_info("Invalid filter instruction '%s' matched in the following line:" % (term), "  " + line)
+                    index = line.find(term)
+                    if index == -1:
+                        data = Channel.format_privmsg(self.channel, line)
+                    else:
+                        line = line[0:index] + Escapes.YELLOW + line[index:(index + len(term))] + Escapes.BLACK + line[(index + len(term)):]
+                        data = Channel.format_privmsg(self.channel, line)
+                elif term is None and instruction is None: # no filter term matched
+                    data = Channel.format_privmsg(self.channel, line)
+                
+                if data is None:
+                    return
+                else:
+                    self.plugin.push_data(data)
+
+        class LogReaderProcess(Process):
+        
+            def __init__(self, plugin, channel, files):
+                Process.__init__(self, name = "ashiema log reader sub-process")
+
+                self.plugin = plugin
+                self.paths = files
+                self.files = []
+                self.channel = channel
+                self.filters = self.plugin.filters
+                self.filter = LogFilter(self.plugin, self.channel, self.filters)
+                
+                self.open()
+            
+            def set_active(self, active):
+                self.active = active
+            
+            def open(self):
+                for file in self.paths:
+                    assert os.path.exists(file)
+                    f = open(file, 'r')
+                    f.seek(0, 2)
+                    self.files.append(f)
+            
+            def read(self):
+                for file in self.files:
+                    file.seek(file.tell())
+                    for line in file:
+                        self.filter.process(line)
+            
+            def close(self):
+                for file in self.files:
+                    file.close()
+                    file = None
+            
+            def run(self):
+                self.active = True
+                while self.active:
+                    try:
+                        time.sleep(0.00025)
+                        self.read()
+                    except (SystemExit, KeyboardInterrupt) as e:
+                        self.close()
+                        return
+                self.close()
+        
+        self.__process = LogReaderProcess(self, self.channel, self.files)
+        self.__process.start()
+        self.log_debug("Started log monitor in child process [PID: %s]." % (self.__process.pid))
+    
+    def __stop(self):
+    
+        if not LogReader.reading:
+            return
+        
+        LogReader.reading = False
+        
+        self.log_info("Deactivating log monitor...")
+        self.__process.set_active(False)
+
+        self.log_info("Terminating child process...")
+        self.__process.terminate()
+    
+    def __restart(self):
+    
+        if not LogReader.reading:
+            self.log_error("Can't restart, log monitor is not running.")
+            return
+        
+        self.__stop()
+        
+        self.log_info("Restarting log monitor...");
+        
+        self.__start()
+    
+    def handler(self, data):
+        
+        if data.message == (0, "@log-filter"):
+            assert self.identification.require_level(data, 2)
+            term, instruction = None, None
+            try:
+                if len(data.message[1:]) == 2:
+                    term = data.message[1]
+                    instruction = data.message[2]
+                    self.filters.update({term : instruction})
+                    data.respond_to_user("Log filtering has been enabled for term: %s" % (term))
+                    data.respond_to_user("Action taken when term is matched: %s" % (self.filters[term].upper()))
+                    self.__restart()
+                elif len(data.message[1:]) == 1:
+                    term = data.message[1]
+                    if term in self.filters:
+                        data.respond_to_user("Log filtering is enabled for term: %s" % (term))
+                        data.respond_to_user("Action taken when term is matched: %s" % (self.filters[term].upper()))
+                        return
+                    else:
+                        data.respond_to_user("Log filtering is %sNOT%s enabled for term: %s" % (Escapes.RED, Escapes.BLACK, term))
+                        return
+                elif len(data.message()) == 1:
+                    if len(self.filters) > 0:
+                        data.respond_to_user("Enabled log filters:")
+                        for term, instruction in self.filters.iteritems():
+                            data.respond_to_user("  %s%s%s => %s" % (Escapes.BOLD, term, Escapes.BLACK, instruction))
+                    else:
+                        data.respond_to_user("There are no log filters set.")
+            except Exception as e:
+                [self.log_info(line) for line in traceback.format_exc(4).split("\n")]
+
+__data__ = {
+    'name'      : 'LogReader',
+    'main'      : LogReader,
+    'version'   : '1.0',
+    'require'   : ['IdentificationPlugin'],
+    'events'    : []
+}
+
+__help__ = {
+    '@log-filter' : {
+        CONTEXT : Contexts.BOTH,
+        DESC    : 'Adds or prints information about a log filter, or lists all enabled log filters.',
+        PARAMS  : '[filter term] [filter instruction, one of IGNORE, MARK, WARNING, IMPORTANT]',
+        ALIASES : []
+    }
+}
+    
