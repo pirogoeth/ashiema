@@ -55,7 +55,7 @@ class LogReader(Plugin):
     def __load_filters__(self):
     
         try:
-            self.shelf = shelve.open(self.get_path() + 'filters.db', protocol = 0, writeback = True)
+            self.shelf = shelve.open(self.get_path() + 'filters.db', flag = 'c', protocol = 0, writeback = True)
             self.filters.update(self.shelf)
         except Exception as e:
             self.filters = None

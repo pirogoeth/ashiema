@@ -38,7 +38,7 @@ class IdentificationPlugin(Plugin):
     def __open_shelve__(self):
 
         try:
-            self.shelf = shelve.open(self.get_path() + "users", protocol = 0, writeback = True)
+            self.shelf = shelve.open(self.get_path() + "users", flag = 'c', protocol = 0, writeback = True)
             self.accounts.update(self.shelf)
         except Exception as e:
             self.shelf = None
@@ -67,7 +67,7 @@ class IdentificationPlugin(Plugin):
             return
         
         try:
-            persistance_shelf = shelve.open(self.get_path() + "persist.db", protocol = 0, writeback = True)
+            persistance_shelf = shelve.open(self.get_path() + "persist.db", flag = 'c', protocol = 0, writeback = True)
             print 'persisting'
             print self.logins
             persistance_shelf.update(self.logins)
@@ -87,7 +87,7 @@ class IdentificationPlugin(Plugin):
             return
         
         try:
-            persistance_shelf = shelve.open(self.get_path() + "persist.db", protocol = 0, writeback = True)
+            persistance_shelf = shelve.open(self.get_path() + "persist.db", flag = 'c', protocol = 0, writeback = True)
             print 'de-persisting'
             print persistance_shelf
             self.logins.update(persistance_shelf)
