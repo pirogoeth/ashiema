@@ -94,8 +94,12 @@ class PluginLoader(object):
                 [self.log.error(trace) for trace in traceback.format_exc(4).split('\n')]
                 continue
             if not hasattr(source, '__data__'): continue
-            if self._list_type is 'blacklist' and source.__data__['name'] in self._list: continue
-            elif self._list_type is 'whitelist' and source.__data__['name'] not in self._list: continue
+            if self._list_type == 'blacklist' and source.__data__['name'] in self._list:
+                self.log.info('Plugin [%s] is blacklisted, so it will not be loaded.' % (source.__data__['name']))
+                continue
+            elif self._list_type == 'whitelist' and source.__data__['name'] not in self._list:
+                self.log.info('Plugin [%s] is not whitelisted, so it will not be loaded.' % (source.__data__['name']))
+                continue
             self.container.update(
                 {
                     source.__data__['name']:

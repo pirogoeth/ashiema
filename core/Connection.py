@@ -12,22 +12,33 @@ from util.apscheduler import scheduler
 from util.apscheduler.scheduler import Scheduler
 from util.Configuration import Configuration
 
+""" module:: Connection
+    :platform: Unix, Windows, Mac OS X
+    :synopsis: Contains Connection and Tokenizer (line tokenizing) classes. """
+
 class Connection(object):
-    """ Connection object to manage the connection 
-        to the uplink """
-        
+    """ py:class:: Connection()
+
+        Manage the connection to a server and run the main parsing/event loop. """
+
     __instance = None
 
     @staticmethod
     def get_instance():
-        
+        """ py:staticmethod:: get_instance()
+            
+            :returns: The Connection instance, if it exists, or a new Connection instance.
+            :rtype: Connection """
+
         if Connection.__instance is None:
             return Connection()
         else:
             return Connection.__instance
 
     def __init__(self):
-        """ initialise connection object. """
+        """ py:function:: __init__(self)
+        
+            Sets up the socket, send queue, communications pipe, and scheduler. """
 
         Connection.__instance = self
     
@@ -39,9 +50,19 @@ class Connection(object):
         self._scheduler = Scheduler()
         self.tasks = {}
    
-    """ information setup """
     def setup_info(self, nick = '', ident = '', real = ''):
-        """ set up post connection info. """
+        """ py:function:: setup_info(self[, nick = ''[, ident = ''[, real = '']]])
+        
+            Sets up the data that is necessary for connecting to a server.
+        
+            :param nick: The nickname to connect with.
+            :type nick: str
+            :param ident: The ident string to connect with.
+            :type ident: str
+            :param real: The real name to connect with.
+            :type real: str
+            :returns: current Connection instance for chaining.
+            :rtype: Connection """
         
         self.nick = nick
         self.ident = ident
@@ -51,24 +72,46 @@ class Connection(object):
         return self
 
     def set_debug(self, debug = True):
-        """ set connection debug logging. """
+        """ py:function:: set_debug(self[, debug = True])
+
+            Sets the flag for whether or not we will show debugging output.
+
+            :param debug: Whether or not to show debug output.
+            :type debug: bool
+            :returns: current Connection instance for chaining.
+            :rtype: Connection """
         
         self.debug = debug
         
         return self
     
-    """ flag management """
     def shutdown(self):
-        """ change the self._connection flag to shut down the bot """
+        """ py:function:: shutdown(self)
+
+            Shuts down the scheduler and terminates the parsing/event loop. """
         
         # shut down the scheduler
         self._scheduler.shutdown()
         # change the value that controls the connection loop
         self._connected = False
         
-    """ socket manipulation and management """
     def connect(self, address = '', port = '', _ssl = None, password = None):
-        """ complete the connection process. """
+        """ py:function:: connect(self[, address = ''[, port = ''[, _ssl = None[, password = None]]]])
+
+            Checks if the connection socket should be ssl wrapped and wraps it if so, and connects
+            the socket to the target server.
+            
+            :param address: Address of the server to connect to.
+            :type address: str
+            :param port: Port to connect to on the specified server.
+            :type port: str
+            :param _ssl: Whether or not the socket should be SSL wrapped.
+            :type _ssl: bool
+            :param password: Password to use to connect to the server, if any.
+            :type password: str
+            :returns: current Connection instance for chaining.
+            :rtype: Connection """
+            
 
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert address and port, 'Parameters for connection have not been provided.'
@@ -91,18 +134,28 @@ class Connection(object):
         
         return self
     
-    def send(self, data):
-        """ function to add a line to the sendqueue to be sent. """
+    def send(self, *lines):
+        """ py:function:: send(self, *lines)
+            
+            Encodes given data in UTF-8 format, then adds it to the send queue.
+            
+            :param lines: Lines that should be appended to the send queue.
+            :type lines: list of strings """
         
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        data = data.decode('UTF-8', 'ignore')
-        self._queue.append(data.encode("UTF-8") + '\r\n')
+        for line in lines:
+            line = line.encode('UTF-8')
+            self._queue.append(line + '\r\n')
     
     def _raw_send(self, data):
-        """ allows sending of raw data directly to the uplink 
-            assumes +data+ has received all necessary formatting to actually be read and processed by the uplink """
+        """ py:function:: _raw_send(self, data)
+        
+            Verifies data has the proper line ending and sends it through the socket.
+            
+            :param data: Data to send to the server.
+            :type data: str """
         
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
@@ -116,19 +169,39 @@ class Connection(object):
         self.connection.send(data)
     
     def get_scheduler(self):
-        """ returns the scheduler instance. """
+        """ py:function:: get_scheduler(self)
+            
+            Returns the scheduler instance.
+            
+            :returns: Current scheduler instance. 
+            :rtype: Scheduler """
         
         return self._scheduler
     
     def get_send_pipe(self):
-        """ returns the sending end of our comms pipe. """
+        """ py:function:: get_send_pipe(self)
+        
+            Returns the sending side of the multiprocessing.Pipe connection for subprocesses.
+            
+            :returns: Sending side of the multiprocessing.Pipe connection.
+            :rtype: multiprocessing.Connection """
         
         return self._comm_pipe_send
    
     def run(self):
-        """ runs the polling loop. 
-            this should run off of two assertions:
-            self._connected is true, and self._setupdone is true."""
+        """ py:function:: run(self)
+            
+            Runs the parsing/event loop.
+            
+            Tries to send the connect burst to the server after 20 cycles.
+            The server connect burst consists of the following messages:
+            
+              PASS :<password> (if a password is set/provided)
+              NICK <nick>
+              USER <nick> +iw <ident> :<real>
+            
+            Handles the first message off the top of the send queue and handles what ever data is waiting
+            in the subprocess pipe. """
         
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
@@ -136,10 +209,9 @@ class Connection(object):
         # start the scheduler
         self._scheduler.start()
         # cycle counter
-        _cc = 1
+        _cc = 0
         while self._connected is True:
             try:
-                # first, sleep so we don't slurp up CPU time like no tomorrow
                 time.sleep(0.001)
                 # send user registration if we're not already registered and about 20 cycles have passed
                 if not self._registered and _cc is 20:
@@ -149,17 +221,14 @@ class Connection(object):
                     self.send("NICK %s" % (self.nick))
                     self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
                     self._registered = True
-                # now, select.
                 r, w, e = select.select([self.connection], [], [self.connection], .025)
-                # now GO!
                 if self.connection in r:
                     self.parse(self.connection.recv(35000))
-                # check if im in the errors
                 if self.connection in e:
                     self._connected = False
                     self.log.critical("Error during poll; aborting!")
                     break
-                # process the data thats in the queue
+                # process data that is currently in the sending queue.
                 try:
                     [self._raw_send(data) for data in [self._queue.popleft() for count in xrange(0, 1)]]
                 except (AssertionError, IndexError) as e:
@@ -167,7 +236,7 @@ class Connection(object):
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
-                # process queued plugin data
+                # process data that is waiting in the subprocess pipe.
                 try:
                     if self._comm_pipe_recv.poll(.025):
                         self.send(self._comm_pipe_recv.recv())
@@ -176,18 +245,24 @@ class Connection(object):
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
+                # increment the cycle counter
                 _cc += 1
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
                 raise
-        # what are we going to do after the loop closes?
         self.log.info("Shutting down.")
         self.connection.close()
         self._socket.close()
         exit()
     
-    """ data parsing and event dispatch """
     def parse(self, data):
+        """ py:function:: parse(self, data)
+
+            Processes a chunk of data by splitting the chunk at each '\r\n', then tokenizes each line, and
+            processes each token.
+            
+            :param data: Chunk of data to be parsed.
+            :type data: str """
         
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
@@ -199,14 +274,29 @@ class Connection(object):
              Tokenizer.process_events(line)
 
 class Tokenizer(object):
-    """ convert a line into a fielded object """
+    """ py:class:: Tokenizer(data)
+    
+        Uses a regex to split up a line and turn each matched group (Origin, Type, Target, Message)
+        into a Structure that makes usage, responding, and formatting much easier. """
 
     @staticmethod
     def process_events(data):
+        """ py:staticmethod:: process_events(data)
+            
+            Passes +data+ to the EventHandler's event mapper for processing.
+            
+            :param data: Line to be processed.
+            :type data: Tokenizer instance """
         
         EventHandler.EventHandler.get_instance().map_events(data)
 
     def __init__(self, data):
+        """ py:function:: __init__(self, data)
+            
+            Tokenizes +data+ according to a regex and matches each group with the proper Structure based on content.
+            
+            :param data: Data to tokenize.
+            :type data: str """
 
         self._raw = data
         self.connection = Connection.get_instance()
@@ -238,10 +328,26 @@ class Tokenizer(object):
             pass
     
     def get_raw(self):
+        """ py:function:: get_raw(self)
+            
+            Returns the raw, untokenized data that was received from the server.
+            
+            :returns: Untokenized data.
+            :rtype: str """
 
         return self._raw
     
     def respond_to_user(self, message, prefer_notice = True):
+        """ py:function:: respond_to_user(self, message[, prefer_notice = True])
+        
+            Determines the best way to respond to the user and sends +message+ that way.
+            If +prefer_notice+ is true, the message will be sent as a NOTICE instead of a 
+            PRIVMSG.
+            
+            :param message: Message to send to the user.
+            :type message: str
+            :param prefer_notice: Whether to use NOTICE or PRIVMSG.
+            :type prefer_notice: bool """
 
         if self.target.is_self():
             if prefer_notice:

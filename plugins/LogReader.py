@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, time, logging, shelve, traceback
+import os, sys, errno, time, logging, shelve, traceback
 from core import Plugin, Events, Structures
 from core.util import Escapes, unescape
 from core.Events import Event
@@ -55,7 +55,7 @@ class LogReader(Plugin):
     def __load_filters__(self):
     
         try:
-            self.shelf = shelve.open(self.get_path() + 'filters', protocol = 0, writeback = True)
+            self.shelf = shelve.open(self.get_path() + 'filters.db', protocol = 0, writeback = True)
             self.filters.update(self.shelf)
         except Exception as e:
             self.filters = None
@@ -130,39 +130,84 @@ class LogReader(Plugin):
         class LogReaderProcess(Process):
         
             def __init__(self, plugin, channel, files):
+
                 Process.__init__(self, name = "ashiema log reader sub-process")
 
                 self.plugin = plugin
                 self.paths = files
-                self.files = []
+                self.files = {}
                 self.channel = channel
                 self.filters = self.plugin.filters
                 self.filter = LogFilter(self.plugin, self.channel, self.filters)
                 
                 self.open()
             
+            def __get_fid__(self, fst):
+            
+                if os.name == 'posix':
+                    return "%xg%x" % (fst.st_dev, fst.st_ino)
+                else:
+                    return "%f" % (fst.st_ctime)
+            
+            def __get_st__(self, file):
+            
+                try:
+                    return os.stat(file.name)
+                except EnvironmentError as err:
+                    if err.errno == errno.ENOENT:
+                        self.__close__(file)
+            
+            def __open__(self, path):
+            
+                assert os.path.exists(os.path.realpath(path))
+                try:
+                    fobj = open(path, 'rb')
+                    fid = self.__get_fid__(self.__get_st__(fobj))
+                    fobj.seek(0, 2)
+                    self.files.update({fid : fobj})
+                    return fid
+                except IOError as err:
+                    self.plugin.log_error("An error occurred while trying to open '%s': %s" % (path, err.errno))                    
+            
+            def __close__(self, fid):
+            
+                fobj = self.files.pop(fid)
+                fobj.close()
+            
+            def __reload__(self, fid):
+            
+                path = self.files[fid].name
+                self.plugin.log_info("Reloading log file '%s'." % (path))
+                self.__close__(fid)
+                return self.__open__(path)
+            
             def set_active(self, active):
+
                 self.active = active
             
             def open(self):
+
                 for file in self.paths:
-                    assert os.path.exists(file)
-                    f = open(file, 'r')
-                    f.seek(0, 2)
-                    self.files.append(f)
+                    self.__open__(file)
             
             def read(self):
-                for file in self.files:
+
+                for fid in self.files.keys():
+                    if fid != self.__get_fid__(self.__get_st__(self.files[fid])):
+                        print fid, self.__get_fid__(self.__get_st__(self.files[fid]))
+                        fid = self.__reload__(fid)
+                    file = self.files[fid]
                     file.seek(file.tell())
                     for line in file:
                         self.filter.process(line)
             
             def close(self):
-                for file in self.files:
-                    file.close()
-                    file = None
+
+                for fid in self.files.keys():
+                    self.__close__(fid)
             
             def run(self):
+
                 self.active = True
                 while self.active:
                     try:
@@ -208,11 +253,11 @@ class LogReader(Plugin):
             assert self.identification.require_level(data, 2)
             term, instruction = None, None
             try:
-                if len(data.message[1:]) == 2:
-                    term = data.message[1]
-                    instruction = data.message[2]
+                if len(data.message[1:]) >= 2:
+                    instruction = data.message[1]
+                    term = ' '.join(data.message[2:])
                     self.filters.update({term : instruction})
-                    data.respond_to_user("Log filtering has been enabled for term: %s" % (term))
+                    data.respond_to_user("Log filtering has been enabled for term: '%s'" % (term))
                     data.respond_to_user("Action taken when term is matched: %s" % (self.filters[term].upper()))
                     self.__restart()
                 elif len(data.message[1:]) == 1:
@@ -228,7 +273,7 @@ class LogReader(Plugin):
                     if len(self.filters) > 0:
                         data.respond_to_user("Enabled log filters:")
                         for term, instruction in self.filters.iteritems():
-                            data.respond_to_user("  %s%s%s => %s" % (Escapes.BOLD, term, Escapes.BLACK, instruction))
+                            data.respond_to_user("  '%s%s%s' => %s" % (Escapes.BOLD, term, Escapes.BLACK, instruction))
                     else:
                         data.respond_to_user("There are no log filters set.")
             except Exception as e:
@@ -246,7 +291,7 @@ __help__ = {
     '@log-filter' : {
         CONTEXT : Contexts.BOTH,
         DESC    : 'Adds or prints information about a log filter, or lists all enabled log filters.',
-        PARAMS  : '[filter term] [filter instruction, one of IGNORE, MARK, WARNING, IMPORTANT]',
+        PARAMS  : '[filter instruction, one of IGNORE, MARK, WARNING, IMPORTANT] [filter term]',
         ALIASES : []
     }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, logging, core, sys, traceback, shelve, base64, cStringIO
+import os, logging, core, sys, traceback, shelve, random, base64, cStringIO
 from cStringIO import StringIO
 from core import Plugin, Events, util
 from core.util import Escapes, unescape, fix_unicode
@@ -70,6 +70,10 @@ class QRGenerator(Plugin):
             self.codes.close()
         except Exception as e:
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
+
+    def __gen_identifier__(self, length = 8):
+    
+        return "".join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890') for n in xrange(length)])
 
     def __plugins_loaded(self):
 

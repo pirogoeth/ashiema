@@ -6,7 +6,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback
+import os, logging, core, sys, traceback, time
 import xml.etree.cElementTree as xtree
 from core import Plugin, Events, util
 from core.util import Escapes
@@ -48,7 +48,11 @@ class WolframAlpha(Plugin):
         self.scheduler.unschedule_job(
             self.connection.tasks.pop("WolframAlpha__scheduled_cache_clean")
         )
-        
+
+    def __timestamp__(self):
+
+        return round(time.time(), 3)
+
     def _load_identification(self):
        
         self.identification = PluginLoader.get_instance().get_plugin("IdentificationPlugin")
@@ -56,7 +60,6 @@ class WolframAlpha(Plugin):
     def _process_result_block_(self, data):
     
         data = data.strip('| ')
-        data = data.decode('UTF-8', 'ignore')
         data = data.encode('UTF-8')
         return data
    
@@ -75,7 +78,8 @@ class WolframAlpha(Plugin):
             except (IndexError) as e:
                 data.target.message("%s[Wolfram|Alpha]: %sPlease provide a query to search." % (Escapes.LIGHT_BLUE, Escapes.BOLD))
                 return
-            self.beginWolframQuery(data, query)
+            data.target.privmsg("%s[Wolfram|Alpha]%s: %sSearching..." % (Escapes.BOLD, Escapes.BOLD, Escapes.LIGHT_BLUE))
+            self.beginWolframQuery(data, query, times = {})
         elif data.message == (0, "@wa-cache") or data.message == (0, "wolfram-cache"):
             assert self.identification.require_level(data, 1)
             data.target.message("%s[Wolfram|Cache]: %s objects cached." % (Escapes.LIGHT_BLUE, len(self.cache)))
@@ -101,7 +105,7 @@ class WolframAlpha(Plugin):
         ))
        
     def parseWolframResponse(self, response, redirected = False, results = None):
-       
+        
         results = results if results is not None else []
         tree = xtree.fromstring(response.read())
         recalculate = tree.get('recalculate') if tree.get('recalculate') else False
@@ -112,7 +116,9 @@ class WolframAlpha(Plugin):
                 plaintext = pod.find('subpod/plaintext')
                 if plaintext is not None and plaintext.text:
                     try: results.append([title, [self._process_result_block_(text) for text in plaintext.text.split('\n')]])
-                    except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e: continue
+                    except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e:
+                        [self.log_error(data) for data in traceback.format_exc(6).split('\n')]
+                        continue
             if recalculate is not False:
                 if not redirected:
                     return self.parseWolframResponse(urlopen(recalculate), redirected = True, results = results)
@@ -125,20 +131,18 @@ class WolframAlpha(Plugin):
         else:
             return False, [tip.get("text") for tip in tree.findall("tips/tip")]
             
-    def beginWolframQuery(self, data, query):    
-        data.target.privmsg("%s[Wolfram|Alpha]%s: %sSearching..." % (Escapes.BOLD, Escapes.BOLD, Escapes.LIGHT_BLUE))
+    def beginWolframQuery(self, data, query):
         try:
             if query in self.cache:
                 response = self.cache[query]
                 have_results = True
             elif query not in self.cache:
-                result = self.search(query)
+                result = self.search(query, times = times)
                 have_results, response = result
                 self.cache.update({
                     query: response
                 })
             if have_results:
-                # process resulsts
                 header_pod = response.pop(0)
                 result_tables = [TextTable() for pod in response]
                 pod_data = [pod[1] for pod in response]
