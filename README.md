@@ -132,7 +132,8 @@ __data__ = {
     'name'      : 'ExamplePermissions',
     'version'   : '1.0',
     'require'   : ['IdentificationPlugin'],
-    'main'      : ExamplePermissions
+    'main'      : ExamplePermissions,
+    'events'    : []
 }
 
 __help__ = {
@@ -163,7 +164,7 @@ Submitting Data To The HelpFactory
 
 All help data collection is done during load of all plugins.  A plugin is not required to provide command help, but it is recommended to do so.
 
-Help data is specified by providing a `__help__` dictionary at the bottom of your plugin **below** the `__data__``dictionary.  Help data dictionary format is as shown:
+Help data is specified by providing a `__help__` dictionary at the bottom of your plugin **below** the `__data__` dictionary.  Help data dictionary format is as shown:
 
 ```python
 __help__ = {
@@ -235,7 +236,7 @@ class ExampleEvent(Event):
 
     def match(self, data):
         """ This is where you should try and match the data given by the server, if that is what you're trying to do.  
-            Otherwise, you can just **return False**. """
+            Otherwise, you can just return False. """
         
         return False
 
@@ -267,16 +268,57 @@ __data__ = {
 If all data is parsed through the connection data pipe, and you're waiting for feedback:
 
 ```python
-class Example(Plugin):
+class ExamplePlugin(Plugin):
 
-    def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+    def __init__(self):
+        Plugin.__init__(self, needs_dir = False)
         self.example_event = self.eventhandler.get_events()['ExampleEvent'].register(this.handler_function)
         ...
     
     def handler_function(self, data):
         if (...)
             ...
+```
+
+Trafficking Data Through Subprocesses
+=====================================
+
+When writing plugins, there are certain cases where you will want to run jobs, process data, or run a service in a separate process to avoid bogging down the main loop.
+
+For example, you are trying to write a plugin that listens for input through network channels, but running your listening loop inside the bot's event loop may add unnecessary overhead, causing the bot to slow down or become non-responsive if your listening loop starts blocking.
+Since Python presents us with the wonderful GIL, basically denying us access to true multi-threaded capabilities, we use the [**multiprocessing**] [1] module to run code in a process that is **almost completely** isolated from the bot's main operations.
+
+The downside of using subprocesses inside modules is the fact that there's not a particularly easy way to communicate data that is gathered back into the main process.
+
+To provide a way of sending data through the server, the plugin framework provides a [communication pipeline] [2] in the form of a unidirectional [multiprocessing.Pipe] [3] pair.
+The communication pipeline allows the sending of data from a separate process straight to the Connection object's data queue.  Data in the comm. pipeline is processed every time the main event loop ticks (goes through one cycle).
+
+To be allowed direct access to the comm. pipe from your plugin, you must add `needs_comm_pipe = True` to the superclass constructor call at the top of your plugin. An example follows.
+
+```python
+class ExamplePlugin(Plugin):
+
+    def __init__(self):
+        Plugin.__init__(self, needs_comm_pipe = True)
+        ...
+
+    def __start(self, *args):
+        class ExamplePluginSubprocess(multiprocessing.Process):
+
+            def __init__(self, plugin, *args):
+                Process.__init__(self, name = "ExamplePluginSubprocess")
+                
+                self.plugin = plugin
+                ...
+            
+            def start(self):
+                ... (generate or gather your data here) ...
+                ... data = (use Structures to format your data for sending) ...
+                self.plugin.push_data(data)
+        
+        self.__process = ExamplePluginSubprocess(self)
+        self.__process.start()
+
 ```
 
 Contributing
@@ -287,10 +329,10 @@ If you wish to contribute to this project, make sure your changes follow the fol
 1. Use spaces, not tabs.  Spaces are much prettier.
 2. When indenting, only use four spaces per "indention".
 3. Use method_name, not methodName when naming methods/fields/etc.
-4. When working with "private or protected" methods, use `__method__`, `_method_`, `_method`, or even `__method`.
+4. When working with "private or protected" methods, use `__method__`, `_method_`, `_method`, or `__method`.
 5. Make sure your code is readable enough that someone can determine what it does if you don't provide documentation with it.  If you provide docs, go crazy.
 
-If you wish to contribute long-term to the project (eg., repo contributor..), send an email to <pirogoeth@maio.me> noting what you want and tell me why you want to help :)
+If you wish to contribute long-term to the project (eg., repo contributor..), send an email to <pirogoeth@maio.me> noting what you want to accomplish and tell me why you want to help :)
 
 If this readme is lacking any crucial information, file an issue stating what is wrong and I'll get right to fixing it.
 
@@ -314,3 +356,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ```
+
+   [1]: http://docs.python.org/2/library/multiprocessing.html                                           "Python 2.7.5 Documentation: multiprocessing"
+   [2]: http://docs.python.org/2/library/multiprocessing.html#exchanging-objects-between-processes      "Python 2.7.5 Documentation: multiprocessing: Exchanging data between processes"
+   [3]: http://docs.python.org/2/library/multiprocessing.html#multiprocessing.Pipe                      "Python 2.7.5 Documentation: multiprocesing.Pipe"
