@@ -1,0 +1,8 @@
+<html>
+  <head>
+    <title>QR#%{ qrid }</title>
+  </head>
+  <body>
+    <img class="qrimage" src="data:image/png;base64,%{ code }" />
+  </body>
+</html>

@@ -194,7 +194,7 @@ class LogReader(Plugin):
 
                 for fid in self.files.keys():
                     if fid != self.__get_fid__(self.__get_st__(self.files[fid])):
-                        print fid, self.__get_fid__(self.__get_st__(self.files[fid]))
+                        # print fid, self.__get_fid__(self.__get_st__(self.files[fid])) # debug
                         fid = self.__reload__(fid)
                     file = self.files[fid]
                     file.seek(file.tell())

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import os, logging, core, sys, traceback, shelve, random, base64, cStringIO
+import os, logging, core, sys, traceback, shelve, random, cStringIO
 from cStringIO import StringIO
+from contextlib import closing
 from core import Plugin, Events, util
 from core.util import Escapes, unescape, fix_unicode
 from core.Plugin import Plugin
@@ -29,7 +30,7 @@ class Base64EncodedStream(object):
     
     def encode(self):
 
-        return base64.b64encode(self.__data)
+        return self.__data.encode('base64')
     
     def close(self):
 
@@ -44,16 +45,22 @@ class QRGenerator(Plugin):
         self.codes = {}
 
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__plugins_loaded)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__load_identification)
+        self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady'].register(self.__http_server_ready)
         
         self.__load_codes__()
 
     def __deinit__(self):
 
         self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__plugins_loaded)
+        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__load_identification)
+        self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady'].deregister(self.__http_server_ready)
         
         self.__unload_codes__()
+    
+    def __load_identification(self):
+    
+        self.identification = self.get_plugin('IdentificationPlugin')
 
     def __load_codes__(self):
     
@@ -75,7 +82,7 @@ class QRGenerator(Plugin):
     
         return "".join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890') for n in xrange(length)])
 
-    def __plugins_loaded(self):
+    def __http_server_ready(self, data = None):
 
         self.http_server = self.get_plugin('HTTPServer')
         HTTPRequestHandler = self.http_server.get_handler_class()
@@ -88,27 +95,97 @@ class QRGenerator(Plugin):
 
                 self.route = route
                 self.path = path
+                self.templating = plugin.get_plugin('HTTPServer').get_templater_class()
 
             def __call__(self, environment, start_response):
 
                 request = environment['ROUTE_PARAMS'][0]
-                print request
                 try:
-                    mimetype = mimetypes.guess_type(request, strict = False)[0]
-                except (Exception) as e:
-                    pass
+                    try:
+                        rendered = StringIO()
+                        templater = self.templating()
+                        with closing(shelve.open(self.plugin.get_path() + "codes.db", protocol = 0, writeback = True)) as codes:
+                            code = codes[request]
+                        with closing(open(self.plugin.get_path() + 'qrcode.thtml', 'r')) as template:
+                            try: start_response(self.response_codes['OK'], [('Content-Type', 'text/html')])
+                            except: pass
+                            templater.update_globals({
+                                'path'      : environment.get('PATH_INFO', ''),
+                                'env'       : environment,
+                                'qrid'      : request,
+                                'code'      : code
+                            })
+                            templater.options()['input'] = template
+                            templater.options()['output'] = rendered
+                            templater.parse()
+                        for line in rendered.getvalue().split('\n'):
+                            yield line
+                    except Exception as e:
+                        raise
+                except Exception as e:
+                    raise
         
-        handler = HTTPQrCodeRequestHandler(self, path = "/public", route = r"""/qr/(.+)?$""")
+        handler = HTTPQrCodeRequestHandler(self, path = "/", route = r"""qr/(.+)?$""")
         handler.register()
+    
+    def __encode(self, input):
+    
+        id = self.__gen_identifier__(length = 6)
+        while id in self.codes:
+            id = self.__gen_identifier__(length = 6)
+        
+        qr = qrcode.QRCode(
+            version             = 1,
+            error_correction    = qrcode.constants.ERROR_CORRECT_L,
+            box_size            = 10,
+            border              = 2)
+        qr.add_data(input)
+        qr.make(fit = True)
+        
+        imgdata = qr.make_image()
+        stream = Base64EncodedStream()
+        imgdata.save(stream)
+        
+        data = stream.encode()
+        stream.close()
+        
+        print data
+        
+        self.codes.update({id: data})
+        self.codes.sync()
+        
+        return id
 
     def handler(self, data):
 
-        pass
+        if data.message == (0, '@qr-encode'):
+            assert self.identification.require_level(data, 1)
+            try:
+                if len(data.message[1:]) > 1:
+                    input = " ".join(data.message[1:])
+                else:
+                    input = data.message[1]
+            except (IndexError) as e:
+                data.origin.notice("%s[QRGenerator]: %sPlease provide a string to encode." % (Escapes.LIGHT_BLUE, Escapes.GREEN))
+                return
+            data.origin.notice("%s[QRGenerator]: %sEncoding..." % (Escapes.LIGHT_BLUE, Escapes.GREEN))
+            qrid = self.__encode(input)
+            data.origin.notice("%s[QRGenerator]: %s/qr/%s" % (Escapes.LIGHT_BLUE, self.get_plugin('HTTPServer').get_base_url(), qrid))
+            
 
 __data__ = {
     'name'      : 'QRGenerator',
     'version'   : '1.0',
-    'require'   : ['HTTPServer'],
+    'require'   : ['IdentificationPlugin', 'HTTPServer'],
     'main'      : QRGenerator,
     'events'    : []
+}
+
+__help__ = {
+    '@qr-encode' : {
+        CONTEXT : Contexts.PUBLIC,
+        DESC    : 'Generates a QR code from given input.',
+        PARAMS  : '<input>',
+        ALIASES : []
+    }
 }

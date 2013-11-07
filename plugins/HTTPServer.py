@@ -82,6 +82,8 @@ class HTTPServer(Plugin):
         
         self.__load_layers()
 
+        self.__ready_event = self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady']
+        
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
 
@@ -101,6 +103,8 @@ class HTTPServer(Plugin):
         self.identification = self.get_plugin('IdentificationPlugin')
 
         self.__register_resource_handler(self.resource_path, self.resource_route)
+        
+        self.eventhandler.fire_once(self.__ready_event, (None))
 
         if self.config['autostart']:
             self.__start()
@@ -110,8 +114,8 @@ class HTTPServer(Plugin):
         if HTTPServer.running:
             return
         
-        bind_host = self.config['bind_host']
-        bind_port = int(self.config['bind_port'])
+        bind_host = self.config.get_string('bind_host')
+        bind_port = self.config.get_int('bind_port')
         
         HTTPServer.running = True
         
@@ -132,8 +136,6 @@ class HTTPServer(Plugin):
                 self.__router = router
                 self.__server = make_server(self.host, self.port, self.__router)
                 
-                print str(gethandlers())
-
             def set_active(self, active):
 
                 self.active = active
@@ -191,18 +193,17 @@ class HTTPServer(Plugin):
     def __load_layers(self):
     
         # load the exception layer
-        dev_mode = False if self.config['development'] == 'False' else True
+        dev_mode = self.config.get_bool('development', False)
         self.__router = ExceptionLayer(self.__router, development = dev_mode, exc_template = self.get_path() + "exception.thtml")
 
     def __router(self, environment, start_response):
         
         request_path = environment.get('PATH_INFO', '').lstrip('/')
 
-        print self.request_handlers.values()
-
         for handler in self.request_handlers.values():
             match = re.search(handler.get_raw_route(), request_path)
             if match is not None:
+                print "Matched request [%s] to handler [%s]." % (request_path, handler)
                 environment['ROUTE_PARAMS'] = match.groups()
                 return handler(environment, start_response)
 
@@ -286,6 +287,9 @@ class HTTPServer(Plugin):
                 data.respond_to_user("The HTTP server is currently inactive.")
         
     def register_handler(self, handler):
+    
+        if HTTPServer.running:
+            self.log_error("[HTTPRequestHandler] Resource handler (%s) tried to register too late!" % (handler.get_name()))
         
         for reg_handler in self.request_handlers.values():
             if handler.get_raw_route() == reg_handler.get_raw_route():
@@ -293,6 +297,8 @@ class HTTPServer(Plugin):
                 return
 
         self.request_handlers.update({ handler.get_name(): handler })
+        
+        self.log_debug("[HTTPRequestHandler] Registered resource handler (%s) matching route (%s)." % (handler.get_name(), handler.get_raw_route()))
     
     def deregister_handler(self, handler):
         
@@ -305,6 +311,23 @@ class HTTPServer(Plugin):
     def get_templater_class(self):
 
         return Templating
+    
+    def get_base_url(self):
+    
+        return "%s:%s" % (self.config.get_string('bind_host'), self.config.get_string('bind_port'))
+
+class HTTPServerHandlerRegistrationReady(Event):
+
+    def __init__(self):
+        Event.__init__(self, "HTTPServerHandlerRegistrationReady")
+        self.__register__()
+    
+    def match(self, data):
+        pass
+    
+    def run(self, data):
+        for callback in self.callbacks.values():
+            callback(data)
 
 class HTTPRequestHandler(object):
 
@@ -395,12 +418,8 @@ class ExceptionLayer(object):
                 traceback += ['','Traceback (most recent call last):']
                 traceback += format_tb(trace)
             traceback.append('%s: %s' % (type.__name__, value))
-            try:
-                for line in render_exception_template().getvalue().split('\n'):
-                    yield line
-            except:
-                for line in render_exception_template().getvalue().split('\n'):
-                    yield line
+            for line in render_exception_template().getvalue().split('\n'):
+                yield line
         if hasattr(response, 'close'):
             response.close()
 
@@ -551,7 +570,7 @@ __data__ = {
     'version'   : '1.0',
     'require'   : ['IdentificationPlugin'],
     'main'      : HTTPServer,
-    'events'    : []
+    'events'    : [HTTPServerHandlerRegistrationReady]
 }
 
 __help__ = {

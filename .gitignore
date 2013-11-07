@@ -8,6 +8,9 @@ plugins/IdentificationPlugin/users.db
 plugins/IdentificationPlugin/persist.db
 plugins/ArtificialIntelligence/brain.db
 plugins/ArtificialIntelligence/brain.old
+plugins/LogReader/filters.db
+plugins/QRGenerator/codes.db
+plugins/QRGenerator/qrcode.test.thtml
 LICENSE.min
 
 *.py[cod]

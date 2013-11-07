@@ -64,6 +64,25 @@ body {
     z-index: 1000;
 }
 
+div.header {
+    line-height: .8;
+}
+    
+div.header > p {
+    font-size: .6em;
+    font-family: 'Roboto Slab', sans-serif;
+    font-style: italic;
+    text-align: center;
+}
+                    
+div.header > p:before {
+    content: '(';
+}
+                        
+div.header > p:after {
+    content: ')';
+}                            
+
 .divider {
     width: 100%;
     padding: .4em;
