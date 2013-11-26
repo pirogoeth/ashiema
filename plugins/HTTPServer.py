@@ -157,7 +157,8 @@ class HTTPServer(Plugin):
 
         self.__process = WSGIServerProcess(host, port, self.__router, self.__get_reqhands)
         self.__process.start()
-        self.log_debug("Started WSGI server in child process [ID: %s]." % (self.__process.pid))
+        self.log_info("Started WSGI server in child process [ID: %s]." % (self.__process.pid))
+        self.log_info("Listening on %s:%s." % (host, port))
 
     def __get_reqhands(self):
     
@@ -203,7 +204,7 @@ class HTTPServer(Plugin):
         for handler in self.request_handlers.values():
             match = re.search(handler.get_raw_route(), request_path)
             if match is not None:
-                print "Matched request [%s] to handler [%s]." % (request_path, handler)
+                self.log_debug("Matched request [%s] to handler [%s]." % (request_path, handler))
                 environment['ROUTE_PARAMS'] = match.groups()
                 return handler(environment, start_response)
 
@@ -353,8 +354,6 @@ class HTTPRequestHandler(object):
             'NOT_IMPLEMENTED'       : "501 NOT IMPLEMENTED"
         }
     
-
-
     def get_name(self):
 
         return self.name
@@ -374,6 +373,35 @@ class HTTPRequestHandler(object):
     def get_raw_route(self):
     
         return self.route
+
+    def get_cookies(self, environment):
+    
+        return environment['HTTP_COOKIE']
+    
+    def get_cookie(self, environment, key):
+    
+        return environment['HTTP_COOKIE'][key] or None
+    
+    def set_cookie(self, environment, (key, value)):
+    
+        if not environment['session']:
+            environment['session'] = {}
+        
+        environment['session'][key] = value
+    
+    def build_cookie_headers(self, environment):
+    
+        headers = []
+    
+        if not environment['session']:
+            return headers
+        
+        for key, value in environment['session'].iteritems():
+            if key in environment['HTTP_COOKIE']:
+                self.plugin.log_warning('[HTTPRequestHandler] Overwriting existing HTTP cookie [%s] with new data "%s".' % (key, value))
+            headers.append((key, value))
+        
+        return headers
 
 class ExceptionLayer(object):
 

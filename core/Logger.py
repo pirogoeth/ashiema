@@ -8,15 +8,10 @@
 import logging, cStringIO, sys
 from logging import handlers
 
-_path = "logs/ashiema.log"
-
 def set_debug(debug):
     if debug is True:
         logging.getLogger('ashiema').setLevel(logging.DEBUG)
     else: logging.getLogger('ashiema').setLevel(logging.INFO)
-
-def set_path(path = "logs/ashiema.log"):
-    _path = path
 
 def set_level(level = "info"):
     _levels = {
@@ -29,7 +24,7 @@ def set_level(level = "info"):
     
     logging.getLogger('ashiema').setLevel(_levels[level])
 
-def setup_logger(stream = False):
+def setup_logger(stream = False, path = "logs/ashiema.log"):
     logger = logging.getLogger("ashiema")
 
     if stream is True:
@@ -37,7 +32,7 @@ def setup_logger(stream = False):
         s.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         logger.addHandler(s)
 
-    handler = handlers.RotatingFileHandler(_path, maxBytes = 10000, backupCount = 5)
+    handler = handlers.RotatingFileHandler(path, maxBytes = 10000, backupCount = 5)
     formatter = logging.Formatter('{%(name)s}[%(levelname)s/%(asctime)s]: %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)

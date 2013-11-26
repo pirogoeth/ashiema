@@ -29,7 +29,8 @@ def main(conf_file):
     
     config = configuration.get_section('main')
     
-    Logger.setup_logger(stream = not config.get_bool('fork'))
+    Logger.setup_logger(stream = not config.get_bool('fork'),
+                        path = "logs/ashiema-%s.log" % (config.get_string('netname', default = 'nonetname')))
     
     log_level = Configuration.get_instance().get_section('logging').get_string('level', 'debug')
     

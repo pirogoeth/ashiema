@@ -149,8 +149,6 @@ class QRGenerator(Plugin):
         data = stream.encode()
         stream.close()
         
-        print data
-        
         self.codes.update({id: data})
         self.codes.sync()
         

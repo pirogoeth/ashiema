@@ -220,7 +220,7 @@ class LogReader(Plugin):
         
         self.__process = LogReaderProcess(self, self.channel, self.files)
         self.__process.start()
-        self.log_debug("Started log monitor in child process [PID: %s]." % (self.__process.pid))
+        self.log_info("Started log monitor in child process [PID: %s]." % (self.__process.pid))
     
     def __stop(self):
     

@@ -68,8 +68,6 @@ class IdentificationPlugin(Plugin):
         
         try:
             persistance_shelf = shelve.open(self.get_path() + "persist.db", flag = 'c', protocol = 0, writeback = True)
-            print 'persisting'
-            print self.logins
             persistance_shelf.update(self.logins)
             persistance_shelf.sync()
             persistance_shelf.close()
@@ -88,8 +86,6 @@ class IdentificationPlugin(Plugin):
         
         try:
             persistance_shelf = shelve.open(self.get_path() + "persist.db", flag = 'c', protocol = 0, writeback = True)
-            print 'de-persisting'
-            print persistance_shelf
             self.logins.update(persistance_shelf)
             persistance_shelf.close()
         except Exception as e:
@@ -117,12 +113,12 @@ class IdentificationPlugin(Plugin):
             self.log_error('Invalid permission level range.')
             return False
         if not self.__check_login__(str(data.origin)):
-            data.origin.message('Please log in to use this function.')
+            data.origin.notice('Please log in to use this function.')
             return False
         relative = self.logins[str(data.origin)]
         level_r = self.accounts[relative]['level']
         if level_r < level:
-            data.origin.message('You do not have the permissions required to use this command.')
+            data.origin.notice('You do not have the permissions required to use this command.')
             return False
         elif level_r >= level:
             return True
@@ -140,13 +136,13 @@ class IdentificationPlugin(Plugin):
                 else:
                     raise IndexError('Invalid number of arguments specified')
             except (IndexError):
-                data.origin.message('Invalid parameters.')
+                data.origin.notice('Invalid parameters.')
                 return
             if not self.__check_user__(username):
-                data.origin.message('Invalid username.')
+                data.origin.notice('Invalid username.')
                 return
             if self.__check_login__(data.origin.to_s()):
-                data.origin.message('You are already logged in.')
+                data.origin.notice('You are already logged in.')
                 return
             elif self.__check_user__(username) and md5(password) == self.accounts[username]['password']:
                 self.logins.update(
@@ -154,24 +150,24 @@ class IdentificationPlugin(Plugin):
                         data.origin.to_s(): username
                     }
                 )
-                data.origin.message('Logged in as %s%s%s.' % (Escapes.BOLD, username, Escapes.BOLD))
+                data.origin.notice('Logged in as %s%s%s.' % (Escapes.BOLD, username, Escapes.BOLD))
                 return
             elif md5(password) != self.accounts[username]['password']:
-                data.origin.message('Invalid password.')
+                data.origin.notice('Invalid password.')
                 return
         elif data.message == (0, 'logout'):
             if not self.__check_login__(data.origin.to_s()):
-                data.origin.message('You are not logged in.')
+                data.origin.notice('You are not logged in.')
                 return
             del self.logins[data.origin.to_s()]
-            data.origin.message('You have been logged out.')
+            data.origin.notice('You have been logged out.')
             return
         elif data.message == (0, 'register'):
             try:
                 username = data.message[1]
                 password = data.message[2]
             except (IndexError):
-                data.origin.message('Invalid parameters.')
+                data.origin.notice('Invalid parameters.')
                 return
             if len(password) >= 8:
                 self.accounts.update(
@@ -182,11 +178,11 @@ class IdentificationPlugin(Plugin):
                         }
                     }
                 )
-                data.origin.message('Registered as %s.' % (username))
+                data.origin.notice('Registered as %s.' % (username))
                 self.accounts.sync()
                 return
             else:
-                data.origin.message('Password %smust%s be greater than or equal to eight characters.' % (Escapes.BOLD, Escapes.BOLD))
+                data.origin.notice('Password %smust%s be greater than or equal to eight characters.' % (Escapes.BOLD, Escapes.BOLD))
                 return
         elif data.message == (0, 'setlevel'):
             try:
@@ -194,29 +190,29 @@ class IdentificationPlugin(Plugin):
                 level = data.message[2]
                 level = int(level)
             except (IndexError):
-                data.origin.message('Invalid parameters.')
+                data.origin.notice('Invalid parameters.')
                 return
             if self.__check_user__(data.origin.to_s()):
                 if self.accounts[data.origin.to_s()]['level'] == 2:
                     if username not in self.shelve:
-                        data.origin.message('Invalid username.')
+                        data.origin.notice('Invalid username.')
                         return
                     elif level not in xrange(0, 3):
-                        data.origin.message('Invalid permissions level.')
+                        data.origin.notice('Invalid permissions level.')
                         return
                     self.shelve[username].update(
                         {
                             'level': level
                         }
                     )
-                    data.origin.message('Set permission level for %s%s%s to %s%d%s.' % (Escapes.BOLD, username, Escapes.BOLD, Escapes.BOLD, levelEscapes.BOLD))
+                    data.origin.notice('Set permission level for %s%s%s to %s%d%s.' % (Escapes.BOLD, username, Escapes.BOLD, Escapes.BOLD, levelEscapes.BOLD))
                     self.accounts.sync()
                     return
                 else:
-                    data.origin.message('You do not have access to permission levels.')
+                    data.origin.notice('You do not have access to permission levels.')
                     return
             elif not self.__check_user__(data.origin.to_s()):
-                data.origin.message('You are not a registered user.')
+                data.origin.notice('You are not a registered user.')
                 return
 
 __data__ = {

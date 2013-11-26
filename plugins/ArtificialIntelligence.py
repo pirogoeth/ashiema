@@ -60,7 +60,7 @@ class ArtificialIntelligence(Plugin):
     
     def _load_identification(self):
     
-        self.identification = self.connection.pluginloader.get_plugin("IdentificationPlugin")
+        self.identification = self.get_plugin("IdentificationPlugin")
     
     def sync(self):
     
