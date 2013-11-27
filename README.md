@@ -51,7 +51,7 @@ class ExamplePlugin(Plugin):
 Define your init and teardown methods.
 
 ```python
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
         Plugin.__init__(self, needs_dir = <boolean>, needs_comm_pipe = <boolean>)
         ...
 
@@ -102,14 +102,14 @@ To use permissions in your plugin, you must register for the PluginsLoadedEvent.
 
 class PermissionsExample(Plugin):
 
-    def __init__(self, connection, eventhandler):
+    def __init__(self):
 
-        Plugin.__init__(self, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False, needs_comm_pipe = False)
 
         self.get_event('MessageEvent').register(self.handler)
         self.get_event('PluginsLoadedEvent').register(self.load_identification)
 
-    def __deinit__(self, connection, eventhandler):
+    def __deinit__(self):
 
         self.get_event('MessageEvent').deregister(self.handler)
         self.get_event('PluginsLoadedEvent').deregister(self.load_identification)
@@ -233,6 +233,7 @@ A custom event should look as follows:
 class ExampleEvent(Event):
 
     def __init__(self):
+
         Event.__init__(self, "ExampleEvent")
         self.__register__()
 
@@ -243,6 +244,7 @@ class ExampleEvent(Event):
         return False
 
     def run(self, data):
+
         for callback in self.callbacks.values():
             callback(data)
 ```
@@ -252,11 +254,13 @@ If you are firing the event based on data retrieved in a handler:
 ```python
 class Example(Plugin):
     
-    def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, needs_dir = False)
+    def __init__(self):
+
+        Plugin.__init__(self, needs_dir = False, needs_comm_pipe = False)
         ...
 
     def handler(self, data):
+
         if (caught_some_data):
             self.fire_event(self.example_event, (event_data))
             ...
@@ -273,11 +277,14 @@ If all data is parsed through the connection data pipe, and you're waiting for f
 class ExamplePlugin(Plugin):
 
     def __init__(self):
+
         Plugin.__init__(self, needs_dir = False)
+
         self.example_event = self.get_event('ExampleEvent').register(this.handler_function)
         ...
     
     def handler_function(self, data):
+
         if (...)
             ...
 ```
@@ -302,7 +309,8 @@ class ExamplePlugin(Plugin):
 
     def __init__(self):
 
-        Plugin.__init__(self, needs_comm_pipe = True)
+        Plugin.__init__(self, needs_comm_pipe = True, needs_comm_pipe = False)
+
         ...
 
     def __start(self, *args):
