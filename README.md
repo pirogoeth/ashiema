@@ -35,12 +35,10 @@ Ashiema has a fairly simple and straightforward plugin framework. It is pretty e
 As with any python class you will write, you must start with your imports, but you must also import certain parts of ashiema's core.  
 
 ```python
-from core import CorePlugin, Event, HelpFactory, get_connection, util
+from core import Plugin, Events, util
 from core.util import Escapes # You only need the Escapes class if you plan on colouring/using formatting (bold, etc) on your messages
-from core.CorePlugin import Plugin
-from core.Event import Event
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS
+from core.Plugin import Plugin
+from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 ```
 
 Then, define your class and inherit the `Plugin` class.
@@ -54,7 +52,7 @@ Define your init and teardown methods.
 
 ```python
     def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler, needs_dir = <boolean>)
+        Plugin.__init__(self, needs_dir = <boolean>, needs_comm_pipe = <boolean>)
         ...
 
     def __deinit__(self):
@@ -65,18 +63,18 @@ Define your init and teardown methods.
 
 You will use your init/deinit methods to handle any registration/deregistration with the eventhandler, as well as any other set up you will need to do.
 
-To use the eventhandler, you must call `self.eventhandler.get_events()[EventName].register(self.method_handler)`.
+To use the eventhandler, you must call `self.get_event(EventName).register(self.method_handler)`.
 
 So, to register for MessageEvents, you would use:
 
 ```python
-self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+self.get_event('MessageEvent').register(self.handler)
 ```
 
 And to deregister:
 
 ```python
-self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+self.get_event('MessageEvent').deregister(self.handler)
 ```
 
 Below your plugin class, **you MUST** add a `__data__` dictionary that provides information about the plugin, which looks like the following:
@@ -102,22 +100,26 @@ To use permissions in your plugin, you must register for the PluginsLoadedEvent.
 
 ```python
 
-class ExamplePermissions(Plugin):
+class PermissionsExample(Plugin):
 
     def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
 
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.load_identification)
+        Plugin.__init__(self, needs_dir = False)
+
+        self.get_event('MessageEvent').register(self.handler)
+        self.get_event('PluginsLoadedEvent').register(self.load_identification)
 
     def __deinit__(self, connection, eventhandler):
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.load_identification)
+
+        self.get_event('MessageEvent').deregister(self.handler)
+        self.get_event('PluginsLoadedEvent').deregister(self.load_identification)
 
     def load_identification(self):
-        self.identification = get_connection().pluginloader.get_plugin('IdentificationPlugin')
+
+        self.identification = self.get_plugin('IdentificationPlugin')
 
     def handler(self, data):
+
         if data.message == (0, 'example'):
             assert self.identification.require_level(data, 2)
             ...
@@ -129,10 +131,10 @@ class ExamplePermissions(Plugin):
                 ...
 
 __data__ = {
-    'name'      : 'ExamplePermissions',
+    'name'      : 'PermissionsExample',
     'version'   : '1.0',
     'require'   : ['IdentificationPlugin'],
-    'main'      : ExamplePermissions,
+    'main'      : PermissionsExample,
     'events'    : []
 }
 
@@ -205,7 +207,7 @@ __help__ = {
 Catching Events
 ===============
 
-Events are simple to catch, it's as simple as `self.eventhandler.get_events()[EventName].register(self.handler_function)`.
+Events are simple to catch, it's as simple as `self.get_event(EventName].register(self.handler_function)`.
 
 Events provided by the system:
 
@@ -230,8 +232,8 @@ A custom event should look as follows:
 ```python
 class ExampleEvent(Event):
 
-    def __init__(self, eventhandler):
-        Event.__init__(self, eventhandler, "ExampleEvent")
+    def __init__(self):
+        Event.__init__(self, "ExampleEvent")
         self.__register__()
 
     def match(self, data):
@@ -251,12 +253,12 @@ If you are firing the event based on data retrieved in a handler:
 class Example(Plugin):
     
     def __init__(self, connection, eventhandler):
-        Plugin.__init__(self, connection, eventhandler, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False)
         ...
 
     def handler(self, data):
         if (caught_some_data):
-            self.eventhandler.fire_once(self.example_event, (event_data))
+            self.fire_event(self.example_event, (event_data))
             ...
 
 __data__ = {
@@ -272,7 +274,7 @@ class ExamplePlugin(Plugin):
 
     def __init__(self):
         Plugin.__init__(self, needs_dir = False)
-        self.example_event = self.eventhandler.get_events()['ExampleEvent'].register(this.handler_function)
+        self.example_event = self.get_event('ExampleEvent').register(this.handler_function)
         ...
     
     def handler_function(self, data):
@@ -299,19 +301,23 @@ To be allowed direct access to the comm. pipe from your plugin, you must add `ne
 class ExamplePlugin(Plugin):
 
     def __init__(self):
+
         Plugin.__init__(self, needs_comm_pipe = True)
         ...
 
     def __start(self, *args):
+
         class ExamplePluginSubprocess(multiprocessing.Process):
 
             def __init__(self, plugin, *args):
+
                 Process.__init__(self, name = "ExamplePluginSubprocess")
                 
                 self.plugin = plugin
                 ...
             
             def start(self):
+
                 ... (generate or gather your data here) ...
                 ... data = (use Structures to format your data for sending) ...
                 self.plugin.push_data(data)

@@ -77,6 +77,18 @@ class Plugin(object):
         
         return PluginLoader.get_instance().get_plugin(plugin)
     
+    def get_event(self, event):
+        """ returns event +event+ if it exists or None. """
+        
+        try: return EventHandler.get_instance().get_events()[event]
+        except (IndexError) as e: return None
+
+    def fire_event(self, event, data = None):
+        """ fires +event+ """
+        
+        if event is not None:
+            EventHandler.get_instance().fire_once(event, data)
+
     def get_path(self):
         """ returns the plugin directory path. """
         
