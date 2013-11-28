@@ -46,11 +46,8 @@ class StatsTracker(Plugin):
             channel, user = data.target.to_s(), data.origin.to_s()
             if channel not in self._db['channels']:
                 self._db['channels'].update({ channel : {} })
-                data.origin.notice("%s[StatsTracker]: There are no stats available." % (Escapes.AQUA))
-                return
             if user not in self._db['channels'][channel]:
                 self._db['channels'][channel].update({ user : (0, 0, 0) })
-                data.origin.notice("%s[StatsTracker]: You have no stats for %s." % (Escapes.AQUA, channel))
             stats = []
             for channel, users in self._db['channels'].iteritems():
                 if user in users:
