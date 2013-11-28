@@ -35,7 +35,6 @@ class StatsTracker(Plugin):
     def __weekly_clean(self):
     
         self._db['channels'].clear()
-        self._db['totals'].clear()
         
         # eventually, print out the final stats here to the log.
         
