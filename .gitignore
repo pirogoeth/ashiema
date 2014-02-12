@@ -1,9 +1,11 @@
+.arcconfig
 logs
 logs/*
 *.save
 test.conf
 lightspike.conf
 mib.conf
+openfaux.conf
 plugins/IdentificationPlugin/users.db
 plugins/IdentificationPlugin/persist.db
 plugins/ArtificialIntelligence/brain.db
