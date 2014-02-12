@@ -12,7 +12,7 @@ try:
     import qrcode
 except (ImportError):
     logging.getLogger('ashiema').error(
-        'You must have the py-qrcode module installed.',
+        'You must have the py-qrcode module installed. ' + \
         'You can get py-qrcode from http://pypi.python.org/pypi/qrcode/3.0'
     )
 
@@ -42,7 +42,7 @@ class QRGenerator(Plugin):
 
         Plugin.__init__(self, needs_dir = True, needs_comm_pipe = False)
 
-        self.codes = {}
+        self.codes = shelve.Shelf({})
 
         self.eventhandler.get_events()['MessageEvent'].register(self.handler)
         self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__load_identification)
@@ -67,7 +67,7 @@ class QRGenerator(Plugin):
         try:
             self.codes = shelve.open(self.get_path() + "codes.db", protocol = 0, writeback = True)
         except Exception as e:
-            self.codes = {}
+            self.codes = shelve.Shelf({})
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
 
     def __unload_codes__(self):

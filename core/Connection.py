@@ -14,7 +14,7 @@ from util.Configuration import Configuration
 
 """ module:: Connection
     :platform: Unix, Windows, Mac OS X
-    :synopsis: Contains Connection and Tokenizer (line tokenizing) classes. """
+    :synopsis: Contains Connection and Tokener (line tokenizing) classes. """
 
 class Connection(object):
     """ py:class:: Connection()
@@ -46,6 +46,7 @@ class Connection(object):
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
         self._queue = collections.deque()
+        self._pqueue, self.__pq_reasm = collections.deque(), None
         self._comm_pipe_recv, self._comm_pipe_send = multiprocessing.Pipe(False)
         self._scheduler = Scheduler()
         self.tasks = {}
@@ -128,8 +129,8 @@ class Connection(object):
             self.log.warning("Connection type not specified, assuming plain.")
         if password is not None or password is not '':
             self._passrequired, self._password = (True, password)
-        self.connection.connect((address, int(port)))
-        # we're connected!
+        try: self.connection.connect((address, int(port)))
+        except: raise
         self._connected = True
         
         return self
@@ -146,7 +147,8 @@ class Connection(object):
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
         for line in lines:
-            line = line.encode('UTF-8')
+            try: line = line.encode("utf-8", "ignore")
+            except: pass
             self._queue.append(line + '\r\n')
     
     def _raw_send(self, data):
@@ -223,7 +225,7 @@ class Connection(object):
                     self._registered = True
                 r, w, e = select.select([self.connection], [], [self.connection], .025)
                 if self.connection in r:
-                    self.parse(self.connection.recv(35000))
+                    self.parse(self.connection.recv(8192))
                 if self.connection in e:
                     self._connected = False
                     self.log.critical("Error during poll; aborting!")
@@ -231,8 +233,7 @@ class Connection(object):
                 # process data that is currently in the sending queue.
                 try:
                     [self._raw_send(data) for data in [self._queue.popleft() for count in xrange(0, 1)]]
-                except (AssertionError, IndexError) as e:
-                    pass
+                except (AssertionError, IndexError) as e: pass
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
@@ -240,13 +241,13 @@ class Connection(object):
                 try:
                     if self._comm_pipe_recv.poll(.025):
                         self.send(self._comm_pipe_recv.recv())
-                except (EOFError, IOError):
-                    pass
+                except (EOFError, IOError): pass
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
                 # increment the cycle counter
                 _cc += 1
+            except (AssertionError) as e: pass
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
                 raise
@@ -266,15 +267,53 @@ class Connection(object):
         
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
+        try: self.__experimental_parse(data)
+        except: raise
+        finally: return
+        
         data = data.split('\r\n')
         for line in data:
              # serialisation.
-             line = Tokenizer(line)
+             line = Tokener(line)
              # fire off all events that match the data.
-             Tokenizer.process_events(line)
+             Tokener.process_events(line)
+    
+    def __experimental_parse(self, data):
+        """ py:function:: parse(self, data)
 
-class Tokenizer(object):
-    """ py:class:: Tokenizer(data)
+            **EXPERIMENTAL** Performs parsing with more respect to the data that's being received.  Will try to
+            detect unfinished / cut off lines and join them back together with their proper chunks.
+            
+            May or may not break things.
+            
+            :param data: Chunk of data to be parsed.
+            :type data: str """
+
+        assert self._connected is True, 'Connection to the uplink has not yet been established.'
+        
+        self._pqueue.extend(data.split('\r\n'))
+        
+        _reasm = None
+        
+        if self.__pq_reasm:
+            _reasm = self.__pq_reasm
+            self.__pq_reasm = None
+        
+        if not data.endswith('\r\n'):
+            self.__pq_reasm = self._pqueue[len(self._pqueue) - 1]
+        
+        while (len(self._pqueue) > 0):
+            line = self._pqueue.popleft()
+            if self.__pq_reasm and len(self._pqueue) == 0:
+                break
+            if _reasm:
+                line = _reasm + line
+                _reasm = None
+            line = Tokener(line)
+            Tokener.process_events(line)
+
+class Tokener(object):
+    """ py:class:: Tokener(data)
     
         Uses a regex to split up a line and turn each matched group (Origin, Type, Target, Message)
         into a Structure that makes usage, responding, and formatting much easier. """
@@ -286,7 +325,7 @@ class Tokenizer(object):
             Passes +data+ to the EventHandler's event mapper for processing.
             
             :param data: Line to be processed.
-            :type data: Tokenizer instance """
+            :type data: Tokener instance """
         
         EventHandler.EventHandler.get_instance().map_events(data)
 

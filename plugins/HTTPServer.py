@@ -112,14 +112,17 @@ class HTTPServer(Plugin):
     def __start(self):
         
         if HTTPServer.running:
-            return
+            raise Exception("The HTTPServer is already running!")
         
         bind_host = self.config.get_string('bind_host')
         bind_port = self.config.get_int('bind_port')
         
         HTTPServer.running = True
         
-        self.__start_serve(bind_host, bind_port)
+        try: self.__start_serve(bind_host, bind_port)
+        except (Exception) as e:
+            HTTPServer.running = False
+            raise
     
     def __start_serve(self, host, port):
     
@@ -167,17 +170,19 @@ class HTTPServer(Plugin):
     def __stop(self):
         
         if not HTTPServer.running or not self.__process:
-            return
+            raise Exception("The HTTP server is not running!")
         
-        HTTPServer.running = False
-
         self.log_info("Deactivating HTTP server...")
         self.__process.set_active(False)
 
         self.log_info("Terminating child process...")
         self.__process.terminate()
         
-        del self.__process
+        if self.__process.is_alive():
+            self.log_error("The HTTP server child process could not be terminated!")
+        else:
+            self.log_info("The HTTP server has been successfully terminated.")
+            HTTPServer.running = False
     
     def __restart(self):
     
@@ -270,15 +275,21 @@ class HTTPServer(Plugin):
             if HTTPServer.running:
                 data.respond_to_user("The HTTP server is already running.")
             elif not HTTPServer.running:
-                self.__start()
-                data.respond_to_user("The HTTP server is starting...")
+                try:
+                    self.__start()
+                    data.respond_to_user("The HTTP server is starting...")
+                except:
+                    data.respond_to_user("The HTTP server could not be started.")
         elif data.message == (0, '@httpd-stop'):
             assert self.identification.require_level(data, 2)
             if not HTTPServer.running:
                 data.respond_to_user("The HTTP server is not running.")
             elif HTTPServer.running:
-                self.__stop()
-                data.respond_to_user("The HTTP server is stopping...")
+                try:
+                    self.__stop()
+                    data.respond_to_user("The HTTP server is stopping...")
+                except:
+                    data.respond_to_user("Could not stop the HTTP server.")
         elif data.message == (0, '@httpd-status'):
             assert self.identification.require_level(data, 1)
             if HTTPServer.running:
