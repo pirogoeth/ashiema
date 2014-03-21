@@ -38,15 +38,15 @@ class LogReader(Plugin):
         self.channel = self.config['channel']
         self.files = self.config['files'].split(',')
         
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PluginsLoadedEvent").register(self.__on_plugins_loaded)
         
         self.__load_filters__()
     
     def __deinit__(self):
     
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__on_plugins_loaded)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PluginsLoadedEvent").deregister(self.__on_plugins_loaded)
         
         self.__stop()
 

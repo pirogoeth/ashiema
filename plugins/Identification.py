@@ -17,7 +17,7 @@ class IdentificationPlugin(Plugin):
 
         Plugin.__init__(self, needs_dir = True)
         
-        self.eventhandler.get_events()['PMEvent'].register(self.handler)
+        self.get_event("PMEvent").register(self.handler)
         
         self.logins = {}
         self.accounts = {}
@@ -29,7 +29,7 @@ class IdentificationPlugin(Plugin):
         
     def __deinit__(self):
 
-        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
+        self.get_event("PMEvent").deregister(self.handler)
         
         self.__persist_logins__()
         

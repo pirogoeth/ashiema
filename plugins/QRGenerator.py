@@ -44,17 +44,17 @@ class QRGenerator(Plugin):
 
         self.codes = shelve.Shelf({})
 
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__load_identification)
-        self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady'].register(self.__http_server_ready)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PluginsLoadedEvent").register(self.__load_identification)
+        self.get_event("HTTPServerHandlerRegistrationReady").register(self.__http_server_ready)
         
         self.__load_codes__()
 
     def __deinit__(self):
 
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__load_identification)
-        self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady'].deregister(self.__http_server_ready)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PluginsLoadedEvent").deregister(self.__load_identification)
+        self.get_event("HTTPServerHandlerRegistrationReady").deregister(self.__http_server_ready)
         
         self.__unload_codes__()
     

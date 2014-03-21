@@ -82,10 +82,10 @@ class HTTPServer(Plugin):
         
         self.__load_layers()
 
-        self.__ready_event = self.eventhandler.get_events()['HTTPServerHandlerRegistrationReady']
+        self.__ready_event = self.get_event("HTTPServerHandlerRegistrationReady")
         
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.__on_plugins_loaded)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PluginsLoadedEvent").register(self.__on_plugins_loaded)
 
     def __deinit__(self):
         
@@ -95,8 +95,8 @@ class HTTPServer(Plugin):
         if HTTPServer.running:
             self.__stop()
         
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.__on_plugins_loaded)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PluginsLoadedEvent").deregister(self.__on_plugins_loaded)
 
     def __on_plugins_loaded(self):
         

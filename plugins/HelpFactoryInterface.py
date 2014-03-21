@@ -20,13 +20,13 @@ class HelpFactoryInterface(Plugin):
         
         self.helpfactory = HelpFactory.get_instance()
         
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PMEvent'].register(self.handler)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PMEvent").register(self.handler)
     
     def __deinit__(self):
     
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PMEvent").deregister(self.handler)
     
     def handler(self, data):
 

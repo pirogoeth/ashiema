@@ -28,11 +28,11 @@ class URLScraper(Plugin):
         
         self.format = "[%sURLScraper%s] %s^t^%s - [%s^l^%s]" % (Escapes.GREEN, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
         
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
+        self.get_event("MessageEvent").register(self.handler)
         
     def __deinit__(self):
     
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
+        self.get_event("MessageEvent").deregister(self.handler)
     
     def get_simple_time(self, duration):
     

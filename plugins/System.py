@@ -43,15 +43,15 @@ class System(Plugin):
 
         Plugin.__init__(self, needs_dir = False)
         
-        self.eventhandler.get_events()['PMEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self.load_identification)
+        self.get_event("PMEvent").register(self.handler)
+        self.get_event("PluginsLoadedEvent").register(self.load_identification)
         
-        self.system_event = self.eventhandler.get_events()['SystemEvent']
+        self.system_event = self.get_event("SystemEvent")
         
     def __deinit__(self):
 
-        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self.load_identification)
+        self.get_event("PMEvent").deregister(self.handler)
+        self.get_event("PluginsLoadedEvent").deregister(self.load_identification)
     
     def load_identification(self):
 

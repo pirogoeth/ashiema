@@ -20,8 +20,8 @@ class GoogleSearch(Plugin):
         
         self.cache = {}
         
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PMEvent'].register(self.handler)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PMEvent").register(self.handler)
         
         self.connection.tasks.update({
             "GoogleSearch__scheduled_cache_clean" :
@@ -37,8 +37,8 @@ class GoogleSearch(Plugin):
         
     def __deinit__(self):
     
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PMEvent'].deregister(self.handler)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PMEvent").deregister(self.handler)
         
         self.scheduler.unschedule_job(
             self.connection.tasks.pop("GoogleSearch__scheduled_cache_clean")

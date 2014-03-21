@@ -26,8 +26,8 @@ class WolframAlpha(Plugin):
     
         self.cache = {}
     
-        self.eventhandler.get_events()['MessageEvent'].register(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].register(self._load_identification)
+        self.get_event("MessageEvent").register(self.handler)
+        self.get_event("PluginsLoadedEvent").register(self._load_identification)
     
         self.connection.tasks.update({
             "WolframAlpha__scheduled_cache_clean":
@@ -42,8 +42,8 @@ class WolframAlpha(Plugin):
     
     def __deinit__(self):
         
-        self.eventhandler.get_events()['MessageEvent'].deregister(self.handler)
-        self.eventhandler.get_events()['PluginsLoadedEvent'].deregister(self._load_identification)
+        self.get_event("MessageEvent").deregister(self.handler)
+        self.get_event("PluginsLoadedEvent").deregister(self._load_identification)
         
         self.scheduler.unschedule_job(
             self.connection.tasks.pop("WolframAlpha__scheduled_cache_clean")
