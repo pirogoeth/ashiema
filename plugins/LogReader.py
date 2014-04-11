@@ -27,7 +27,7 @@ class LogReader(Plugin):
         
         LogReader.reading = False
         
-        self.config = self.get_plugin_configuration();
+        self.config = self.get_plugin_configuration()
         
         self.filters = {}
         self.__process = None
@@ -111,6 +111,8 @@ class LogReader(Plugin):
                     data = Channel.format_privmsg(self.channel, "%s%s" % (Escapes.RED, line))
                 elif instruction == "IMPORTANT":
                     data = Channel.format_privmsg(self.channel, "%s%s%s" % (Escapes.BOLD, Escapes.RED, line))
+                elif instruction == "NONE":
+                    data = Channel.format_privmsg(self.channel, "%s" % (line))
                 elif term is not None and instruction is not None: #invalid filter term matched
                     self.plugin.log_info("Invalid filter instruction '%s' matched in the following line:" % (term), "  " + line)
                     index = line.find(term)
@@ -278,7 +280,23 @@ class LogReader(Plugin):
                         data.respond_to_user("There are no log filters set.")
             except Exception as e:
                 [self.log_info(line) for line in traceback.format_exc(4).split("\n")]
-
+        elif data.message == (0, "@clear-log-filter"):
+            assert self.identification.require_level(data, 2)
+            term = None
+            try:
+                term = ' '.join(data.message[1:])
+                if term in self.filters:
+                    del self.filters[term]
+                    data.respond_to_user("Cleared filter for term '%s'." % (term))
+                    self.__restart()
+                else:
+                    data.respond_to_user("There is no filter set for '%s'." % (term))
+            except IndexError as e:
+                data.respond_to_user("You must provide a term to clear.")
+                return
+            except Exception as e:
+                [self.log_info(line) for line in traceback.format_exc(4).split("\n")]
+            
 __data__ = {
     'name'      : 'LogReader',
     'main'      : LogReader,
