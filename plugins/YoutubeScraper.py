@@ -18,7 +18,7 @@ class YoutubeScraper(Plugin):
     
         Plugin.__init__(self, needs_dir = False)
         
-        self.regexp = r"""(?:https?://(?:www.|)youtube.com/(?:watch\?v=([\w-]*)))"""
+        self.regexp = r"""(?:https?://(?:www.|)youtube.com/(?:watch\?v=([\w-]+)))|(?:https?://youtu.be/([\w-]+))"""
         self.pattern = re.compile(self.regexp, re.VERBOSE)
         
         self.format = "[%sYou%sTube%s] %s&t%s [&d minutes] - %s&a%s" % (Escapes.YELLOW, Escapes.RED, Escapes.BLACK, Escapes.AQUA, Escapes.BLACK, Escapes.GREY, Escapes.BLACK)
@@ -37,9 +37,10 @@ class YoutubeScraper(Plugin):
     def handler(self, data):
      
         if len(self.pattern.findall(data.message.to_s())) >= 1:
-            for id in self.pattern.findall(data.message.to_s()):
+            for vid in self.pattern.findall(data.message.to_s())[0]:
+                if vid == '' or vid is None: continue
                 try:
-                    with closing(urlopen(self.apiurl % (id))) as req:
+                    with closing(urlopen(self.apiurl % (vid))) as req:
                         info = json.loads(req.read(), encoding = 'utf-8')
                         data.target.message(self.format.replace("&t", info['data']['title']).replace("&a", info['data']['uploader']).replace("&d", str(int(info['data']['duration']) / 60)))
                 except (HTTPError, IOError) as e:
