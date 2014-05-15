@@ -10,7 +10,7 @@ import hashlib
 __all__ = ['Connection', 'Events', 'EventHandler', 'HelpFactory', 
        'Logger', 'Plugin', 'PluginLoader', 'Structures', 'Tokenizer']
 
-version = "1.1"
+version = "1.1-dev"
 
 def md5(data):
     _m = hashlib.md5()

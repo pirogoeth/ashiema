@@ -135,6 +135,29 @@ class Connection(object):
         
         return self
     
+    def send_registration(self):
+        """ py:function:: send_registration(self)
+
+            Sends registration commands in the following order.
+        
+              PASS :<password> (if a password is set/provided)
+              NICK <nick>
+              USER <nick> +iw <unused> :<realname>
+            
+            Sends the password and registration information to the server. """
+
+        assert self._setupdone is True, 'Information setup has not been completed.'
+        assert self._connected is True, 'Connection to the uplink has not yet been established.'
+        assert self._registered is False, 'Registration with the uplink has already been completed.'
+
+        if not self._registered:  # we probably don't need this any longer...
+            if self._passrequired: 
+                self.send("PASS :%s" % (self._password))
+                self._password = None
+            self.send("NICK %s" % (self.nick))
+            self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
+            self._registered = True
+    
     def send(self, *lines):
         """ py:function:: send(self, *lines)
             
@@ -151,7 +174,7 @@ class Connection(object):
             except: pass
             self._queue.append(line + '\r\n')
     
-    def _raw_send(self, data):
+    def _raw_send(self, data, override = False):
         """ py:function:: _raw_send(self, data)
         
             Verifies data has the proper line ending and sends it through the socket.
@@ -162,7 +185,7 @@ class Connection(object):
         assert self._setupdone is True, 'Information setup has not been completed.'
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
 
-        if data.strip() == '':
+        if data.strip() == '' and not override:
             return
 
         if not data.endswith('\r\n'):
@@ -195,13 +218,6 @@ class Connection(object):
             
             Runs the parsing/event loop.
             
-            Tries to send the connect burst to the server after 20 cycles.
-            The server connect burst consists of the following messages:
-            
-              PASS :<password> (if a password is set/provided)
-              NICK <nick>
-              USER <nick> +iw <ident> :<real>
-            
             Handles the first message off the top of the send queue and handles what ever data is waiting
             in the subprocess pipe. """
         
@@ -210,19 +226,9 @@ class Connection(object):
         
         # start the scheduler
         self._scheduler.start()
-        # cycle counter
-        _cc = 0
         while self._connected is True:
             try:
                 time.sleep(0.001)
-                # send user registration if we're not already registered and about 20 cycles have passed
-                if not self._registered and _cc is 20:
-                    if self._passrequired: 
-                        self.send("PASS :%s" % (self._password))
-                        self._password = None
-                    self.send("NICK %s" % (self.nick))
-                    self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
-                    self._registered = True
                 r, w, e = select.select([self.connection], [], [self.connection], .025)
                 if self.connection in r:
                     self.parse(self.connection.recv(8192))
@@ -230,6 +236,8 @@ class Connection(object):
                     self._connected = False
                     self.log.critical("Error during poll; aborting!")
                     break
+                if not self._registered:
+                    self._raw_send('\r\n', override = True)
                 # process data that is currently in the sending queue.
                 try:
                     [self._raw_send(data) for data in [self._queue.popleft() for count in xrange(0, 1)]]
@@ -245,8 +253,6 @@ class Connection(object):
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
-                # increment the cycle counter
-                _cc += 1
             except (AssertionError) as e: pass
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
@@ -265,30 +271,6 @@ class Connection(object):
             :param data: Chunk of data to be parsed.
             :type data: str """
         
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
-        
-        try: self.__experimental_parse(data)
-        except: raise
-        finally: return
-        
-        data = data.split('\r\n')
-        for line in data:
-             # serialisation.
-             line = Tokener(line)
-             # fire off all events that match the data.
-             Tokener.process_events(line)
-    
-    def __experimental_parse(self, data):
-        """ py:function:: parse(self, data)
-
-            **EXPERIMENTAL** Performs parsing with more respect to the data that's being received.  Will try to
-            detect unfinished / cut off lines and join them back together with their proper chunks.
-            
-            May or may not break things.
-            
-            :param data: Chunk of data to be parsed.
-            :type data: str """
-
         assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
         self._pqueue.extend(data.split('\r\n'))
@@ -311,7 +293,7 @@ class Connection(object):
                 _reasm = None
             line = Tokener(line)
             Tokener.process_events(line)
-
+        
 class Tokener(object):
     """ py:class:: Tokener(data)
     

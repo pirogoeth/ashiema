@@ -31,7 +31,7 @@ class Plugin(object):
 
         self.logger.debug("Initialising plugin: [" + self.name + "]")
         
-        # set up the plugins directory, if it doesn't exist.
+        # set up the plugin's directory, if it doesn't exist.
         if not os.path.exists(self.path) and needs_dir:
             try:
                 os.makedirs(self.path)
@@ -80,7 +80,7 @@ class Plugin(object):
     def get_event(self, event):
         """ returns event +event+ if it exists or None. """
         
-        try: return EventHandler.get_instance().get_events()[event]
+        try: return EventHandler.get_instance().get_event(event)
         except (IndexError) as e: return None
 
     def fire_event(self, event, data = None):

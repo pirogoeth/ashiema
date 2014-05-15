@@ -78,14 +78,14 @@ class Event(object):
         pass
 
 
-class BasicUserEvent(Event):
+class UserEvent(Event):
     """ This event represents a user action, such as joining a channel, parting
         a channel, or quitting from the IRC network. The events that subclass this
         will each provide their own method of detecting what the user action was. """
 
-    def __init__(self, event_name = "BasicUserEvent"):
+    def __init__(self, event_name = "UserEvent"):
 
-        Event.__init__(self, event_name = "BasicUserEvent")
+        Event.__init__(self, event_name = "UserEvent")
         self.__register__()
     
     def match(self, data):
@@ -117,6 +117,29 @@ class PluginsLoadedEvent(Event):
 
         for callback in self.callbacks.values():
             callback()
+
+class IRCConnectionReadyEvent(Event):
+    """ Represents completion of the bot's handshake with the server. """
+    
+    def __init__(self):
+    
+        Event.__init__(self, "IRCConnectionReadyEvent")
+        self.__register__()
+        
+    def match(self, data = None):
+    
+        if str(data.target) == '*' and str(data.message).lstrip().startswith("***") and not data.connection._registered:
+            return True
+        else:
+            return False
+     
+    def run(self, data = None):
+     
+        data.connection.send_registration()
+        
+        if self.callbacks is not None:
+            for function in self.callbacks.values():
+                function(data)
 
 class ModeChangeEvent(Event):
 
@@ -245,11 +268,11 @@ class MessageEvent(Event):
             for name, function in self.callbacks.iteritems():
                 function(data)
 
-class UserJoinedEvent(BasicUserEvent):
+class UserJoinedEvent(UserEvent):
 
     def __init__(self):
 
-        BasicUserEvent.__init__(self, "JoinEvent")
+        UserEvent.__init__(self, "JoinEvent")
     
     def match(self, data):
 
@@ -258,11 +281,11 @@ class UserJoinedEvent(BasicUserEvent):
         else:
             return False
                 
-class UserPartedEvent(BasicUserEvent):
+class UserPartedEvent(UserEvent):
 
     def __init__(self):
 
-        BasicUserEvent.__init__(self, "PartEvent")
+        UserEvent.__init__(self, "PartEvent")
     
     def match(self, data):
 
@@ -271,11 +294,11 @@ class UserPartedEvent(BasicUserEvent):
         else:
             return False
     
-class UserQuitEvent(BasicUserEvent):
+class UserQuitEvent(UserEvent):
 
     def __init__(self):
 
-        BasicUserEvent.__init__(self, "QuitEvent")
+        UserEvent.__init__(self, "QuitEvent")
        
     def match(self, data):
 
@@ -346,15 +369,16 @@ class CTCPEvent(Event):
 
 def get_events():
 
-    return { 'RFCEvent'          : RFCEvent(), # mainly server triggered events
-             'PingEvent'         : PingEvent(),
-             'ErrorEvent'        : ErrorEvent(),
-             'ModeChangeEvent'   : ModeChangeEvent(),
-             'CTCPEvent'         : CTCPEvent(),
-             'MessageEvent'      : MessageEvent(), # user triggered events
-             'PMEvent'           : PMEvent(),
-             'JoinEvent'         : UserJoinedEvent(),
-             'PartEvent'         : UserPartedEvent(),
-             'QuitEvent'         : UserQuitEvent(),
-             'PluginsLoadedEvent': PluginsLoadedEvent() # system triggered events
+    return { 'RFCEvent'                     : RFCEvent(), # mainly server triggered events
+             'PingEvent'                    : PingEvent(),
+             'ErrorEvent'                   : ErrorEvent(),
+             'ModeChangeEvent'              : ModeChangeEvent(),
+             'CTCPEvent'                    : CTCPEvent(),
+             'IRCConnectionReadyEvent'      : IRCConnectionReadyEvent(),
+             'MessageEvent'                 : MessageEvent(), # user triggered events
+             'PMEvent'                      : PMEvent(),
+             'JoinEvent'                    : UserJoinedEvent(),
+             'PartEvent'                    : UserPartedEvent(),
+             'QuitEvent'                    : UserQuitEvent(),
+             'PluginsLoadedEvent'           : PluginsLoadedEvent() # system triggered events
            }

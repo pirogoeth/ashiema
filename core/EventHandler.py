@@ -33,6 +33,12 @@ class EventHandler(object):
 
         return self.events
 
+    def get_event(self, event):
+        """ returns the specified event """
+    
+        try: return self.events[event]
+        except: return None
+
     def get_events(self):
         """ returns the events that have been loaded by the system. """
         
