@@ -7,6 +7,7 @@
 
 import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback
 import Logger, EventHandler, Structures, PluginLoader
+from PluginLoader import PluginLoader
 from util import Configuration, apscheduler
 from util.apscheduler import scheduler
 from util.apscheduler.scheduler import Scheduler
@@ -93,6 +94,8 @@ class Connection(object):
         
         # shut down the scheduler
         self._scheduler.shutdown()
+        # unload plugins
+        PluginLoader.get_instance().unload()
         # change the value that controls the connection loop
         self._connected = False
         

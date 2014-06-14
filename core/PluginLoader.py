@@ -164,6 +164,8 @@ class PluginLoader(object):
 
         assert self._loaded is True, 'Plugins have not yet been loaded.'
         
+        print 'PluginLoader.unload() has been called!'
+        
         # this unloads all currently loaded plugins (eg., for shutdown)
         for name, plugin in self.loaded.iteritems():
             plugin.__deinit__()

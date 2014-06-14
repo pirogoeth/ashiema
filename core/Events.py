@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, time, core, datetime, sys
+import logging, time, core, datetime, sys, os
 from core.util import Configuration
 import Connection, EventHandler, Structures
 from core.util.Configuration import Configuration
@@ -23,6 +23,8 @@ class Event(object):
 
         self.eventhandler = EventHandler.get_instance()
         self.connection = Connection.get_instance()
+
+        self.logger = logging.getLogger('ashiema')
 
         self.name = event_name
         self.callbacks = {}
@@ -64,6 +66,31 @@ class Event(object):
 
         del self.callbacks[self.get_method_ident(function)]
 
+    def log_debug(self, *args):
+        """ send data to the logger with level `debug`. """
+        
+        [self.logger.debug('[' + self.name + '] ' + message) for message in args]
+
+    def log_info(self, *args):
+        """ send data to the logger with level `info`. """
+        
+        [self.logger.info('[' + self.name + '] ' + message) for message in args]
+
+    def log_warning(self, *args):
+        """ send data to the logger with level `warning`. """
+        
+        [self.logger.warning('[' + self.name + '] ' + message) for message in args]
+
+    def log_error(self, *args):
+        """ send data to the logger with level `error`. """
+        
+        [self.logger.error('[' + self.name + '] ' + message) for message in args]
+
+    def log_critical(self, *args):
+        """ send data to the logger with level `critical`. """
+        
+        [self.logger.critical('[' + self.name + '] ' + message) for message in args]
+    
     def match(self, data):
         """ this is a method that will provide the hooking system a mechanism
             to detect if a certain data value triggers a match on a registered
@@ -181,6 +208,11 @@ class ErrorEvent(Event):
         logging.getLogger('ashiema').critical('<- %s: %s' % (str(data.type), data.message))
         # adjust the loop shutdown flag
         data.connection.shutdown()
+        # check if we should attempt to reconnect
+        if Configuration.get_instance().get_section('main').get_bool('reconnect-on-err', True):
+            self.log_info("======== Preparing to reconnect, stand by. ========")
+            sys.argv.insert(0, "python")
+            os.execvpe("python", sys.argv, os.environ)
 
 class PMEvent(Event):
 
