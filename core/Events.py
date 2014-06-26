@@ -264,8 +264,8 @@ class RFCEvent(Event):
         elif data.type.to_i() == 353:
             # RPL_NAMEREPLY
             pass
-        elif data.type.to_i() == 376:
-            # RPL_ENDOFMOTD
+        elif data.type.to_i() == 376 || data.type.to_i() == 422:
+            # RPL_ENDOFMOTD or ERR_NOMOTD
             if "join" in self.__conn_hooks__:
                 channel = self.config.get_string('channel', None)
                 key = self.config.get_string('chan_key', None)
@@ -273,7 +273,7 @@ class RFCEvent(Event):
             if "pluginload" in self.__conn_hooks__:
                 PluginLoader.get_instance().load()
         elif data.type.to_i() == 433:
-            # ERR_NICKNAMEINUSE
+            # ERR_NICKNAMEINUSE # XXX - Quit just exiting. Implement a nick change/tracking mechanism.
             logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
             self.connection.shutdown()
         
