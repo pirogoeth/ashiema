@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, cStringIO, sys
+import logging, cStringIO, sys, os
 from logging import handlers
 
 def set_debug(debug):
@@ -25,6 +25,10 @@ def set_level(level = "info"):
     logging.getLogger('ashiema').setLevel(_levels[level])
 
 def setup_logger(stream = False, path = "logs/ashiema.log"):
+    basedir = os.path.dirname(path)
+    if not os.path.exists(basedir):
+        os.mkdir(basedir)
+
     logger = logging.getLogger("ashiema")
 
     if stream is True:

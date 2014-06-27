@@ -264,7 +264,7 @@ class RFCEvent(Event):
         elif data.type.to_i() == 353:
             # RPL_NAMEREPLY
             pass
-        elif data.type.to_i() == 376 || data.type.to_i() == 422:
+        elif data.type.to_i() == 376 or data.type.to_i() == 422:
             # RPL_ENDOFMOTD or ERR_NOMOTD
             if "join" in self.__conn_hooks__:
                 channel = self.config.get_string('channel', None)
