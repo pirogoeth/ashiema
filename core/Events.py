@@ -235,6 +235,40 @@ class PMEvent(Event):
             for function in self.callbacks.values():
                 function(data)
 
+class CAPEvent(Event):
+
+    capabilities = []
+
+    def __init__(self):
+    
+        Event.__init__(self, "CAPEvent")
+        self.__register__()
+        self.commands = ['CAP']
+        
+        self.connection = Connection.get_instance()
+
+    def match(self, data):
+    
+        if self.commands.__contains__(str(data.type)):
+            return True
+
+    def run(self, data):
+
+        subcommand = data.message[0]
+        arguments = data.message[1:]
+        
+        arguments[0] = arguments[0][1:]
+        
+        if subcommand == 'LS':
+            if 'account-notify' in arguments and 'extended-join' in arguments:
+                self.connection.send("CAP REQ :account-notify extended-join")
+        elif subcommand == 'ACK':
+            for capability in arguments:
+                CAPEvent.capabilities.append(capability)
+            self.log_info("Registered capabilities: %s" % (','.join(CAPEvent.capabilities)))
+            self.connection.send("CAP END")
+            
+
 class RFCEvent(Event):
 
     def __init__(self):
@@ -264,6 +298,12 @@ class RFCEvent(Event):
         elif data.type.to_i() == 353:
             # RPL_NAMEREPLY
             pass
+        elif data.type.to_i() == 354:
+            # RPL_WHOSPCRPL
+            channel = Channel.get_channel(data.message[0])
+            if channel is None:
+                pass
+            channel.parse_who(data)
         elif data.type.to_i() == 376 or data.type.to_i() == 422:
             # RPL_ENDOFMOTD or ERR_NOMOTD
             if "join" in self.__conn_hooks__:
@@ -312,7 +352,7 @@ class UserJoinedEvent(UserEvent):
             return True
         else:
             return False
-                
+            
 class UserPartedEvent(UserEvent):
 
     def __init__(self):
@@ -402,6 +442,7 @@ class CTCPEvent(Event):
 def get_events():
 
     return { 'RFCEvent'                     : RFCEvent(), # mainly server triggered events
+             'CAPEvent'                     : CAPEvent(),
              'PingEvent'                    : PingEvent(),
              'ErrorEvent'                   : ErrorEvent(),
              'ModeChangeEvent'              : ModeChangeEvent(),

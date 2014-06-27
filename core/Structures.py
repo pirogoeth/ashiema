@@ -39,20 +39,12 @@ class Channel(object):
     
         return "KICK %s %s :%s" % (channel, username, reason)
 
-    def __init__(self, channel):
-
-        self.connection = Connection.Connection.get_instance()
-        self.name = channel
-
-        if channel in Channel.__channels:
-            self = Channel.__channels[channel]
-        elif channel not in Channel.__channels:
-            Channel.__channels[channel] = self
+    @staticmethod
+    def format_who(channel):
+        """ requests list of channel members with information in format: <channel> <host> <nick> <account> """
     
-    def __repr__(self):
+        return "WHO %s %achn" % (channel)
 
-        return str(self.name)
-    
     @staticmethod
     def join(channel, key = None):
         """ assembles a join message. """
@@ -63,6 +55,29 @@ class Channel(object):
         
         return message
 
+    @staticmethod
+    def get_channel(channel):
+        """ returns a channel with a given name. """
+        
+        try: return __channels[channel]
+        except: return None
+
+    def __init__(self, channel):
+
+        self.connection = Connection.Connection.get_instance()
+        self.name = channel
+        
+        self.users = {}
+
+        if channel in Channel.__channels:
+            self = Channel.__channels[channel]
+        elif channel not in Channel.__channels:
+            Channel.__channels[channel] = self
+    
+    def __repr__(self):
+
+        return str(self.name)
+    
     def to_s(self):
 
         return str(self.name)
@@ -97,6 +112,24 @@ class Channel(object):
         
         self.connection.send(message)
 
+    def request_who(self):
+    
+        message = Channel.format_who(self.name)
+        
+        self.connection.send(message)
+    
+    def parse_who(self, data):
+    
+        line = data.message
+        
+        user = {    'host'      : line[1],
+                    'account'   : line[3] }
+
+        if nick in self.users:
+            self.users[nick] = user
+        else:
+            self.users.update({ nick : user })
+
 class Message(object):
 
     def __init__(self, data):
@@ -113,11 +146,11 @@ class Message(object):
     
     def __eq__(self, (index, cmp)):
 
-        return self()[index] == cmp
+        return self.data.split()[index] == cmp
     
     def __ne__(self, (index, cmp)):
 
-        return self()[index] != cmp
+        return self.data.split()[index] != cmp
     
     def __len__(self):
 
@@ -125,7 +158,7 @@ class Message(object):
     
     def __getitem__(self, index):
 
-        return self()[index]
+        return self.data.split()[index]
     
     def split(self, delim):
 

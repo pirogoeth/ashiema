@@ -145,6 +145,7 @@ class Connection(object):
         
               PASS :<password> (if a password is set/provided)
               NICK <nick>
+              CAP LS
               USER <nick> +iw <unused> :<realname>
             
             Sends the password and registration information to the server. """
@@ -158,7 +159,8 @@ class Connection(object):
                 self.send("PASS :%s" % (self._password))
                 self._password = None
             self.send("NICK %s" % (self.nick))
-            self.send("USER %s +iw %s :%s" % (self.nick, self.ident, self.real))
+            self.send("CAP LS")
+            self.send("USER %s %s %s :%s" % (self.nick, self.nick, self.ident, self.real))
             self._registered = True
     
     def send(self, *lines):
