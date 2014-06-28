@@ -246,6 +246,8 @@ class CAPEvent(Event):
         self.commands = ['CAP']
         
         self.connection = Connection.get_instance()
+        self.config = Configuration.get_instance().get_section('main')
+        self.extensions = self.config.get_list('capextensions')
 
     def match(self, data):
     
@@ -260,13 +262,18 @@ class CAPEvent(Event):
         arguments[0] = arguments[0][1:]
         
         if subcommand == 'LS':
-            if 'account-notify' in arguments and 'extended-join' in arguments:
-                self.connection.send("CAP REQ :account-notify extended-join")
+            extensionlist = []
+            for extension in self.extensions:
+                if extension in arguments:
+                    extensionlist.append(extension)
+            self.connection.send("CAP REQ :%s" % (' '.join(extensionlist)))
         elif subcommand == 'ACK':
             for capability in arguments:
                 CAPEvent.capabilities.append(capability)
             self.log_info("Registered capabilities: %s" % (','.join(CAPEvent.capabilities)))
             self.connection.send("CAP END")
+        elif subcommand == 'NAK':
+            self.log_error("Server refused extensions: %s" % (arguments))
             
 
 class RFCEvent(Event):

@@ -24,7 +24,7 @@ class ConfigurationSection(dict):
     def __setitem__(self, key, value):
     
         if self.mutable:
-            self.update({key: value})
+            self.update({ key: value })
         else:
             raise AttributeError("This section is not mutable.")
     
@@ -40,6 +40,13 @@ class ConfigurationSection(dict):
     
         return self.__getitem__(key)
     
+    def get_list(self, key, delimiter = ",", default = []):
+    
+        try:
+            val = self.get(key)
+            return val.split(delimiter) if len(val) > 0 else default
+        except: return default                
+
     def get_string(self, key, default = ""):
     
         try: return str(self.get(key)) or default
