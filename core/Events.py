@@ -261,6 +261,10 @@ class CAPEvent(Event):
         
         arguments[0] = arguments[0][1:]
         
+        if len(self.extensions) == 0:
+            self.log_info("No capabilities specified in configuration; skipping CAP negotiation.")
+            self.connection.send("CAP END")
+
         if subcommand == 'LS':
             extensionlist = []
             for extension in self.extensions:

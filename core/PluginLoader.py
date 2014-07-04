@@ -51,7 +51,7 @@ class PluginLoader(object):
     
     def __getitem__(self, plugin):
 
-        return self()[plugin]
+        return self.loaded[plugin]
         
     def __depcheck__(self, container):
 
@@ -68,8 +68,6 @@ class PluginLoader(object):
     
     def get_plugin(self, plugin):
 
-        assert self._loaded is True, 'Plugins have not yet been loaded.'
-        
         try: return self.loaded[plugin]
         except:
             [self.log.error(trace) for trace in traceback.format_exc(6).split('\n')]
@@ -151,8 +149,6 @@ class PluginLoader(object):
     
     def reload(self):
 
-        assert self._loaded is True, 'Plugins have not yet been loaded.'
-        
         # run the unload method
         self.unload()
         # recreate the containers
@@ -162,15 +158,13 @@ class PluginLoader(object):
     
     def unload(self):
 
-        assert self._loaded is True, 'Plugins have not yet been loaded.'
-        
-        print 'PluginLoader.unload() has been called!'
-        
-        # this unloads all currently loaded plugins (eg., for shutdown)
-        for name, plugin in self.loaded.iteritems():
-            plugin.__deinit__()
-        # clear status containers
-        self.loaded.clear()
-        self.container.clear()
-        # delete containers
-        del self.loaded, self.container
+        try:
+            # this unloads all currently loaded plugins (eg., for shutdown)
+            for name, plugin in self.loaded.iteritems():
+                plugin.__deinit__()
+            # clear status containers
+            self.loaded.clear()
+            self.container.clear()
+            # delete containers
+            del self.loaded, self.container
+        except: pass

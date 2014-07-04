@@ -117,10 +117,6 @@ class Connection(object):
             :rtype: Connection """
             
 
-        assert self._setupdone is True, 'Information setup has not been completed.'
-        assert address and port, 'Parameters for connection have not been provided.'
-        
-        _ssl = True if _ssl == True or _ssl == "True" or _ssl == "true" else False
         if _ssl is True:
             self.connection = ssl.wrap_socket(self._socket)
             self.log.info("Connection type: SSL")
@@ -150,9 +146,8 @@ class Connection(object):
             
             Sends the password and registration information to the server. """
 
-        assert self._setupdone is True, 'Information setup has not been completed.'
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
-        assert self._registered is False, 'Registration with the uplink has already been completed.'
+        if not self._connected: return
+        if self._registered: return
 
         if not self._registered:  # we probably don't need this any longer...
             if self._passrequired: 
@@ -171,8 +166,7 @@ class Connection(object):
             :param lines: Lines that should be appended to the send queue.
             :type lines: list of strings """
         
-        assert self._setupdone is True, 'Information setup has not been completed.'
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
+        if not self._connected: return
 
         for line in lines:
             try: line = line.encode("utf-8", "ignore")
@@ -187,8 +181,7 @@ class Connection(object):
             :param data: Data to send to the server.
             :type data: str """
         
-        assert self._setupdone is True, 'Information setup has not been completed.'
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
+        if not self._connected: return
 
         if data.strip() == '' and not override:
             return
@@ -226,8 +219,7 @@ class Connection(object):
             Handles the first message off the top of the send queue and handles what ever data is waiting
             in the subprocess pipe. """
         
-        assert self._setupdone is True, 'Information setup has not been completed.'
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
+        if not self._connected: return
         
         # start the scheduler
         self._scheduler.start()
@@ -275,8 +267,6 @@ class Connection(object):
             
             :param data: Chunk of data to be parsed.
             :type data: str """
-        
-        assert self._connected is True, 'Connection to the uplink has not yet been established.'
         
         self._pqueue.extend(data.split('\r\n'))
         
@@ -343,8 +333,9 @@ class Tokener(object):
                 self.target = Structures.Channel(self._target) if self._target is not None else None
             else: self.target = Structures.User(self._target) if self._target is not None else None
             self.message = Structures.Message(self._message)
+            # print self.origin, "|", self.type, "|", self.target, "|", self.message # debug
         except (AttributeError):
-            pass
+            print "Could Not Parse Message:", self._raw
         try:
             if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
                 if self.type and self.message:
