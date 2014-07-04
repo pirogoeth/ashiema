@@ -335,7 +335,8 @@ class Tokener(object):
             self.message = Structures.Message(self._message)
             # print self.origin, "|", self.type, "|", self.target, "|", self.message # debug
         except (AttributeError):
-            print "Could Not Parse Message:", self._raw
+            pass
+            # print "Could Not Parse Message:", self._raw # debug
         try:
             if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
                 if self.type and self.message:
