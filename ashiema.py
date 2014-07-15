@@ -44,8 +44,7 @@ def main(conf_file):
     connection.setup_info(
         nick     = config.get_string('nick', 'ashiema'),
         ident    = config.get_string('ident', 'ashiema'),
-        real     = config.get_string('real', 'ashiema IRC bot -- http://github.com/pirogoeth/ashiema')
-    )
+        real     = config.get_string('real', 'ashiema IRC bot -- http://github.com/pirogoeth/ashiema'))
 
     if config.get_bool('fork', False):
         fork()

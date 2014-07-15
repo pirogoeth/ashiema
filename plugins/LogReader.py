@@ -311,6 +311,12 @@ __help__ = {
         DESC    : 'Adds or prints information about a log filter, or lists all enabled log filters.',
         PARAMS  : '[filter instruction, one of IGNORE, MARK, WARNING, IMPORTANT] [filter term]',
         ALIASES : []
+    },
+    '@clear-log-filter' : {
+        CONTEXT : Contexts.BOTH,
+        DESC    : 'Removes a log filter from the database',
+        PARAMS  : '[filter term]',
+        ALIASES : []
     }
 }
     

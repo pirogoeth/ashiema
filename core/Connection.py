@@ -329,14 +329,14 @@ class Tokener(object):
             # take each token and initialise the appropriate structure.
             self.origin = Structures.User(self._origin) if self._origin is not None else None
             self.type = Structures.Type(self._type) if self._type is not None else None
-            if self._target.startswith('#', 0, 1) is True:
-                self.target = Structures.Channel(self._target) if self._target is not None else None
-            else: self.target = Structures.User(self._target) if self._target is not None else None
+            if self._target is None:
+                pass
+            elif self._target.startswith('#', 0, 1) is True:
+                self.target = Structures.Channel(self._target)
+            else: self.target = Structures.User(self._target)
             self.message = Structures.Message(self._message)
-            # print self.origin, "|", self.type, "|", self.target, "|", self.message # debug
         except (AttributeError):
             pass
-            # print "Could Not Parse Message:", self._raw # debug
         try:
             if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
                 if self.type and self.message:

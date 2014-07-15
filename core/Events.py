@@ -105,26 +105,6 @@ class Event(object):
         pass
 
 
-class UserEvent(Event):
-    """ This event represents a user action, such as joining a channel, parting
-        a channel, or quitting from the IRC network. The events that subclass this
-        will each provide their own method of detecting what the user action was. """
-
-    def __init__(self, event_name = "UserEvent"):
-
-        Event.__init__(self, event_name = "UserEvent")
-        self.__register__()
-    
-    def match(self, data):
-
-        pass
-    
-    def run(self, data):
-
-        if self.callbacks is not None:
-            for function in self.callbacks.values():
-                function(data)
-
 class PluginsLoadedEvent(Event):
     """ This event represents the completion of the plugin load cycle in the PluginLoader. """
 
@@ -301,7 +281,8 @@ class RFCEvent(Event):
     def run(self, data):
 
         if data.type.to_i() == 001:
-            # RPL_WELCOME
+                    
+    # RPL_WELCOME
             logging.getLogger('ashiema').info('<- welcome received: %s' % (data.message))
         elif data.type.to_i() == 002:
             # RPL_YOURHOST
@@ -351,11 +332,12 @@ class MessageEvent(Event):
             for name, function in self.callbacks.iteritems():
                 function(data)
 
-class UserJoinedEvent(UserEvent):
+class UserJoinEvent(Event):
 
     def __init__(self):
 
-        UserEvent.__init__(self, "JoinEvent")
+        Event.__init__(self, "UserJoinEvent")
+        self.__register__()
     
     def match(self, data):
 
@@ -363,12 +345,17 @@ class UserJoinedEvent(UserEvent):
             return True
         else:
             return False
-            
-class UserPartedEvent(UserEvent):
+
+    def run(self, data):
+    
+        self.log_debug("<- user %s joined channel %s" % (data.origin.to_s(), data.message.to_s()))
+
+class UserPartEvent(Event):
 
     def __init__(self):
 
-        UserEvent.__init__(self, "PartEvent")
+        Event.__init__(self, "UserPartEvent")
+        self.__register__()
     
     def match(self, data):
 
@@ -377,11 +364,18 @@ class UserPartedEvent(UserEvent):
         else:
             return False
     
-class UserQuitEvent(UserEvent):
+    def run(self, data):
+    
+        if not data.target:    
+            self.log_debug("<- user %s parted channel %s" % (data.origin.to_s(), data.message.to_s()))
+        else:
+            self.log_debug("<- user %s parted channel %s: %s" % (data.origin.to_s(), data.target.to_s(), data.message.to_s()))
+
+class UserQuitEvent(Event):
 
     def __init__(self):
 
-        UserEvent.__init__(self, "QuitEvent")
+        Event.__init__(self, "UserQuitEvent")
        
     def match(self, data):
 
@@ -389,6 +383,10 @@ class UserQuitEvent(UserEvent):
             return True
         else:
             return False
+
+    def run(self, data):
+    
+        self.log_debug("<- user %s has quit: %s" % (data.origin.to_s(), data.message.to_s()))
 
 class PingEvent(Event):
    
@@ -461,8 +459,8 @@ def get_events():
              'IRCConnectionReadyEvent'      : IRCConnectionReadyEvent(),
              'MessageEvent'                 : MessageEvent(), # user triggered events
              'PMEvent'                      : PMEvent(),
-             'JoinEvent'                    : UserJoinedEvent(),
-             'PartEvent'                    : UserPartedEvent(),
+             'JoinEvent'                    : UserJoinEvent(),
+             'PartEvent'                    : UserPartEvent(),
              'QuitEvent'                    : UserQuitEvent(),
              'PluginsLoadedEvent'           : PluginsLoadedEvent() # system triggered events
            }
