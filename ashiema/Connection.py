@@ -6,11 +6,10 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback
-import Logger, EventHandler, Structures, PluginLoader
+import Logger, EventHandler, Scheduler, Structures, PluginLoader
 from PluginLoader import PluginLoader
-from util import Configuration, apscheduler
-from util.apscheduler import scheduler
-from util.apscheduler.scheduler import Scheduler
+from Scheduler import Scheduler
+from util import Configuration
 from util.Configuration import Configuration
 
 """ module:: Connection
@@ -50,7 +49,6 @@ class Connection(object):
         self._pqueue, self.__pq_reasm = collections.deque(), None
         self._comm_pipe_recv, self._comm_pipe_send = multiprocessing.Pipe(False)
         self._scheduler = Scheduler()
-        self.tasks = {}
    
     def setup_info(self, nick = '', ident = '', real = ''):
         """ py:function:: setup_info(self[, nick = ''[, ident = ''[, real = '']]])
@@ -90,10 +88,8 @@ class Connection(object):
     def shutdown(self):
         """ py:function:: shutdown(self)
 
-            Shuts down the scheduler and terminates the parsing/event loop. """
+            Deinitializes plugins and terminates the parsing/event loop. """
         
-        # shut down the scheduler
-        self._scheduler.shutdown()
         # unload plugins
         PluginLoader.get_instance().unload()
         # change the value that controls the connection loop
@@ -221,8 +217,6 @@ class Connection(object):
         
         if not self._connected: return
         
-        # start the scheduler
-        self._scheduler.start()
         while self._connected is True:
             try:
                 time.sleep(0.001)
@@ -250,6 +244,7 @@ class Connection(object):
                 except (KeyboardInterrupt, SystemExit) as e:
                     self.shutdown()
                     raise
+                self._scheduler.tick()
             except (AssertionError) as e: pass
             except (KeyboardInterrupt, SystemExit) as e:
                 self.shutdown()
