@@ -11,6 +11,7 @@ from ashiema.util import Escapes, unescape, fix_unicode
 from ashiema.Plugin import Plugin
 from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
+from datetime import timedelta
 
 class GoogleSearch(Plugin):
     
@@ -23,14 +24,8 @@ class GoogleSearch(Plugin):
         self.get_event("MessageEvent").register(self.handler)
         self.get_event("PMEvent").register(self.handler)
         
-        self.connection.tasks.update({
-            "GoogleSearch__scheduled_cache_clean" :
-                self.scheduler.add_interval_job(
-                    self.clean_cache,
-                    days = 1
-                )
-            }
-        )
+        self.__cache_clean_job = self.scheduler.create_job(
+            "GoogleSearch__scheduled_cache_clean", self.clean_cache, timedelta(days = 1), recurring = True)
         
         self.url = "https://ajax.googleapis.com/ajax/services/search/web?"
         self.prefix = "%sG%so%so%sg%sl%se%s" % (Escapes.BLUE, Escapes.RED, Escapes.YELLOW, Escapes.BLUE, Escapes.GREEN, Escapes.RED, Escapes.COLOURED)
@@ -40,9 +35,7 @@ class GoogleSearch(Plugin):
         self.get_event("MessageEvent").deregister(self.handler)
         self.get_event("PMEvent").deregister(self.handler)
         
-        self.scheduler.unschedule_job(
-            self.connection.tasks.pop("GoogleSearch__scheduled_cache_clean")
-        )
+        self.scheduler.remove_job(self.__cache_clean_job)
     
     def clean_cache(self):
     

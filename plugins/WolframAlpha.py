@@ -29,25 +29,17 @@ class WolframAlpha(Plugin):
         self.get_event("MessageEvent").register(self.handler)
         self.get_event("PluginsLoadedEvent").register(self._load_identification)
     
-        self.connection.tasks.update({
-            "WolframAlpha__scheduled_cache_clean":
-                self.scheduler.add_interval_job(
-                    self.clean_cache,
-                    days = 1
-                )
-            }
-        )
-        
+        self.__clean_cache_job = self.scheduler.create_job(
+            "WolframAlpha__scheduled_cache_clean", self.clean_cache, timedelta(days = 1), recurring = True)
+
         self.appID = "395X7T-8JLXGEP8YH"
     
     def __deinit__(self):
         
         self.get_event("MessageEvent").deregister(self.handler)
         self.get_event("PluginsLoadedEvent").deregister(self._load_identification)
-        
-        self.scheduler.unschedule_job(
-            self.connection.tasks.pop("WolframAlpha__scheduled_cache_clean")
-        )
+
+        self.scheduler.remove_job(self.__clean_cache_job)
 
     def __timestamp__(self):
 
