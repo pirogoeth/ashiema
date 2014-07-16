@@ -5,15 +5,15 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, re, json, htmlentitydefs
-from core import Plugin, Events, util
-from core.util import Escapes
-from core.util import unescape
-from core.util.texttable import TextTable
-from core.Plugin import Plugin
-from core.PluginLoader import PluginLoader
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
+import os, logging, ashiema, sys, traceback, re, json, htmlentitydefs
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes
+from ashiema.util import unescape
+from ashiema.util.texttable import TextTable
+from ashiema.Plugin import Plugin
+from ashiema.PluginLoader import PluginLoader
+from ashiema.HelpFactory import Contexts
+from ashiema.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
 
 class UrbanDictionary(Plugin):

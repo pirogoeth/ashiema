@@ -5,12 +5,12 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, threading, random
-from core import Plugin, Events, HelpFactory, util
-from core.util import Escapes
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
+import os, logging, ashiema, sys, traceback, threading, random
+from ashiema import Plugin, Events, HelpFactory, util
+from ashiema.util import Escapes
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts
+from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from urllib import urlopen
 from random import randint
 try:

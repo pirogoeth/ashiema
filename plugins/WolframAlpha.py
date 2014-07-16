@@ -6,15 +6,15 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, time
+import os, logging, ashiema, sys, traceback, time
 import xml.etree.cElementTree as xtree
-from core import Plugin, Events, util
-from core.util import Escapes
-from core.Plugin import Plugin
-from core.PluginLoader import PluginLoader
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
-from core.util.texttable import TextTable
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes
+from ashiema.Plugin import Plugin
+from ashiema.PluginLoader import PluginLoader
+from ashiema.HelpFactory import Contexts
+from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.util.texttable import TextTable
 from urllib import urlopen, urlencode
 from contextlib import closing
 

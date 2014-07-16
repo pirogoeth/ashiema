@@ -5,16 +5,16 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, core, sys, logging, traceback
-from core import Connection, Plugin, Events, HelpFactory
-from core.Connection import Connection
-from core.Events import Event
-from core.Plugin import Plugin
-from core.PluginLoader import PluginLoader
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
-from core.util import Configuration
-from core.util.Configuration import Configuration
+import os, ashiema, sys, logging, traceback
+from ashiema import Connection, Plugin, Events, HelpFactory
+from ashiema.Connection import Connection
+from ashiema.Events import Event
+from ashiema.Plugin import Plugin
+from ashiema.PluginLoader import PluginLoader
+from ashiema.HelpFactory import Contexts
+from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
+from ashiema.util import Configuration
+from ashiema.util.Configuration import Configuration
 
 class SystemEvent(Event):
 

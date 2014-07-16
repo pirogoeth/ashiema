@@ -5,12 +5,12 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core
-from core import Plugin, Events, util
-from core.util import Escapes
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, Filters, HelpFactory
-from core.HelpFactory import CONTEXT, PARAMS, DESC, NAME, ALIASES
+import os, logging, ashiema
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, Filters, HelpFactory
+from ashiema.HelpFactory import CONTEXT, PARAMS, DESC, NAME, ALIASES
 
 class HelpFactoryInterface(Plugin):
 

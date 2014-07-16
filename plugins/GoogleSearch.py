@@ -5,11 +5,11 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, re, json
-from core import Plugin, Events, util
-from core.util import Escapes, unescape, fix_unicode
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
+import os, logging, ashiema, sys, traceback, re, json
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes, unescape, fix_unicode
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
 
 class GoogleSearch(Plugin):

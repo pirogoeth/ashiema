@@ -6,12 +6,12 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, datetime, pprint, StringIO
-from core import Plugin, Events, util
-from core.util import Escapes, unescape, fork
-from core.Events import Event
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts
-from core.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes, unescape, fork
+from ashiema.Events import Event
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts
+from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from contextlib import closing
 from cgi import parse_qs, escape
 from datetime import datetime

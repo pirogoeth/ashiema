@@ -5,11 +5,11 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, shelve, core, traceback
-from core import Plugin, Events, HelpFactory, md5, util
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
-from core.util import Escapes
+import os, logging, shelve, ashiema, traceback
+from ashiema import Plugin, Events, HelpFactory, md5, util
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.util import Escapes
 
 class IdentificationPlugin(Plugin):
 

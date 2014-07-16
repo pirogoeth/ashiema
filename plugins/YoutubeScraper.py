@@ -5,10 +5,10 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, re, logging, core, urllib2, json, contextlib
-from core import Plugin, Events, util
-from core.util import Escapes
-from core.Plugin import Plugin
+import os, re, logging, ashiema, urllib2, json, contextlib
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes
+from ashiema.Plugin import Plugin
 from contextlib import closing
 from urllib2 import urlopen, HTTPError
 

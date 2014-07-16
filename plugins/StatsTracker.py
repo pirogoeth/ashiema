@@ -1,9 +1,9 @@
 #!/usr/bin/env python2.7
 
-from core import Plugin, Events, util
-from core.util import Escapes
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 
 class StatsTracker(Plugin):
 

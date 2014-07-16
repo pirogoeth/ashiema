@@ -6,13 +6,13 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, sys, errno, time, logging, shelve, traceback
-from core import Plugin, Events, Structures
-from core.util import Escapes, unescape
-from core.Events import Event
-from core.Plugin import Plugin
-from core.PluginLoader import PluginLoader
-from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
-from core.Structures import Channel
+from ashiema import Plugin, Events, Structures
+from ashiema.util import Escapes, unescape
+from ashiema.Events import Event
+from ashiema.Plugin import Plugin
+from ashiema.PluginLoader import PluginLoader
+from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
+from ashiema.Structures import Channel
 from multiprocessing import Process
 
 class LogReader(Plugin):

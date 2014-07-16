@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import os, logging, core, sys, traceback, shelve, random, cStringIO
+import os, logging, ashiema, sys, traceback, shelve, random, cStringIO
 from cStringIO import StringIO
 from contextlib import closing
-from core import Plugin, Events, util
-from core.util import Escapes, unescape, fix_unicode
-from core.Plugin import Plugin
-from core.PluginLoader import PluginLoader
-from core.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes, unescape, fix_unicode
+from ashiema.Plugin import Plugin
+from ashiema.PluginLoader import PluginLoader
+from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 try:
     import qrcode
 except (ImportError):

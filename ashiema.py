@@ -13,13 +13,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import sys, core, logging, traceback
-from core import Events, Logger, util
-from core.Connection import Connection
-from core.EventHandler import EventHandler
-from core.PluginLoader import PluginLoader
-from core.util import Configuration, fork
-from core.util.Configuration import Configuration, ConfigurationSection
+import sys, ashiema, logging, traceback
+from ashiema import Events, Logger, util
+from ashiema.Connection import Connection
+from ashiema.EventHandler import EventHandler
+from ashiema.PluginLoader import PluginLoader
+from ashiema.util import Configuration, fork
+from ashiema.util.Configuration import Configuration, ConfigurationSection
 
 def main(conf_file):
     configuration = Configuration()

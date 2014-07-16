@@ -5,11 +5,11 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, core, sys, traceback, re
-from core import Plugin, Events, HelpFactory, util
-from core.util import Escapes as e
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+import os, logging, ashiema, sys, traceback, re
+from ashiema import Plugin, Events, HelpFactory, util
+from ashiema.util import Escapes as e
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from urllib import urlopen
 
 class AutoMeme(Plugin):
