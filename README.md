@@ -35,10 +35,10 @@ Ashiema has a fairly simple and straightforward plugin framework. It is pretty e
 As with any python class you will write, you must start with your imports, but you must also import certain parts of ashiema's core.  
 
 ```python
-from core import Plugin, Events, util
-from core.util import Escapes # You only need the Escapes class if you plan on colouring/using formatting (bold, etc) on your messages
-from core.Plugin import Plugin
-from core.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema import Plugin, Events, util
+from ashiema.util import Escapes # You only need the Escapes class if you plan on colouring/using formatting (bold, etc) on your messages
+from ashiema.Plugin import Plugin
+from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 ```
 
 Then, define your class and inherit the `Plugin` class.
