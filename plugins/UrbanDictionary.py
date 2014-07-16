@@ -15,6 +15,7 @@ from ashiema.PluginLoader import PluginLoader
 from ashiema.HelpFactory import Contexts
 from ashiema.HelpFactory import CONTEXT, PARAMS, DESC, ALIASES
 from urllib import urlopen, urlencode
+from datetime import timedelta
 
 class UrbanDictionary(Plugin):
 
@@ -27,14 +28,8 @@ class UrbanDictionary(Plugin):
         self.get_event("MessageEvent").register(self.handler)
         self.get_event("PluginsLoadedEvent").register(self._load_identification)
         
-        self.connection.tasks.update({
-            "UrbanDictionary__scheduled_cache_clean" :
-                self.scheduler.add_interval_job(
-                    self.clean_cache,
-                    days = 1
-                )
-            }
-        )
+        self.__clean_cache_job = self.scheduler.create_job(
+            "UrbanDictionary__scheduled_cache_clean", self.clean_cache, timedelta(days = 1), recurring = True)
         
         self.url = "http://api.urbandictionary.com/v0/define?"
     
@@ -42,11 +37,9 @@ class UrbanDictionary(Plugin):
     
         self.get_event("MessageEvent").deregister(self.handler)
         self.get_event("PluginsLoadedEvent").deregister(self._load_identification)
-        
-        self.scheduler.unschedule_job(
-            self.connection.tasks.pop("UrbanDictionary__scheduled_cache_clean")
-        )
 
+        self.scheduler.remove_job(self.__clean_cache_job)
+        
     def _load_identification(self):
     
         self.identification = PluginLoader.get_instance().get_plugin("IdentificationPlugin")

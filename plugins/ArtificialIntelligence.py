@@ -13,14 +13,13 @@ from ashiema.HelpFactory import Contexts
 from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from urllib import urlopen
 from random import randint
+from datetime import timedelta
 try:
     import megahal
     has_megahal = True
 except ImportError:
     logging.getLogger('ashiema').error("You must install py-megahal to use this plugin.")
     has_megahal = False
-
-get_thread = lambda func, data: threading.Thread(target = func, args = (data,))
 
 class ArtificialIntelligence(Plugin):
 
@@ -38,25 +37,15 @@ class ArtificialIntelligence(Plugin):
         self.response_chances = {}
         self.default_chance = 30
         
-        self.connection.tasks.update({
-            "ArtificialIntelligence__scheduled_sync" :
-                self.scheduler.add_interval_job(
-                    self.sync,
-                    minutes = 30
-                )
-            }
-        )
-    
+        self.__sync_job = self.scheduler.create_job(
+            "ArtificialIntelligence__scheduled_sync", self.sync, timedelta(minutes = 30), recurring = True)
+
     def __deinit__(self):
     
         self.get_event("MessageEvent").deregister(self.handler)
         self.get_event("PluginsLoadedEvent").deregister(self._load_identification)
     
-        self.scheduler.unschedule_job(
-            self.connection.tasks.pop(
-                "ArtificialIntelligence__scheduled_sync"
-            )
-        )
+        self.scheduler.remove_job(self.__sync_job)
     
     def _load_identification(self):
     
@@ -64,9 +53,7 @@ class ArtificialIntelligence(Plugin):
     
     def sync(self):
     
-        thread = get_thread(self.brain.sync, None)
-        thread.setDaemon(True)
-        thread.start()
+        self.brain.sync()
     
     def handler(self, data):
     

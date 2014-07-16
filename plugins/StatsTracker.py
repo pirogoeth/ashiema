@@ -1,9 +1,15 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
+
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
 
 from ashiema import Plugin, Events, util
 from ashiema.util import Escapes
 from ashiema.Plugin import Plugin
 from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from datetime import timedelta
 
 class StatsTracker(Plugin):
 
@@ -16,21 +22,14 @@ class StatsTracker(Plugin):
 
         self.get_event('MessageEvent').register(self.handler)
         
-        self.connection.tasks.update({
-            "StatsTracker__reset_weekly":
-                self.scheduler.add_interval_job(
-                    self.__weekly_clean,
-                    days = 7
-                )
-            }
-        )
+        self.__weekly_clean_job = self.scheduler.create_job(
+            "StatsTracker__reset_weekly", self.__weekly_clean, timedelta(days = 7), recurring = True)
     
     def __deinit__(self):
     
         self.get_event('MessageEvent').deregister(self.handler)
         
-        [self.scheduler.unschedule_job(self.connection.tasks.pop(task))
-            for task in ["StatsTracker__reset_weekly"]]
+        self.scheduler.remove_job(self.__weekly_clean_job)
 
     def __weekly_clean(self):
     
