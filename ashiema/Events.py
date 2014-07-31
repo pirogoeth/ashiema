@@ -332,6 +332,49 @@ class MessageEvent(Event):
             for name, function in self.callbacks.iteritems():
                 function(data)
 
+class AccountEvent(Event):
+
+    def __init__(self):
+    
+        Event.__init__(self, "AccountEvent")
+        self.__register__()
+    
+    def match(self, data):
+    
+        if str(data.type) == 'ACCOUNT' and 'account-notify' in CAPEvent.capabilities:
+            return True
+        else:
+            return False
+    
+    def run(self, data):
+    
+        if data.message.to_s() == "*":
+            self.log_debug("<- user %s has logged out of an account" % (data.origin.to_s()))
+            data.origin.update_account(account = '*')
+        else:
+            self.log_debug("<- user %s has been logged in to account %s" % (data.origin.to_s(), data.message.to_s()))
+            data.origin.update_account(account = data.message.to_s())
+
+class NickChangeEvent(Event):
+
+    def __init__(self):
+    
+        Event.__init__(self, "NickChangeEvent")
+        self.__register__()
+    
+    def match(self, data):
+    
+        if str(data.type) == 'NICK':
+            return True
+        else:
+            return False
+    
+    def run(self, data):
+    
+        self.log_info("<- user %s changed nick to %s" % (data.origin.to_s(), data.message.to_s()))
+
+        data.origin.nick_change(data.message.to_s())
+        
 class UserJoinEvent(Event):
 
     def __init__(self):
@@ -348,7 +391,11 @@ class UserJoinEvent(Event):
 
     def run(self, data):
     
-        self.log_debug("<- user %s joined channel %s" % (data.origin.to_s(), data.message.to_s()))
+        if 'account-notify' in CAPEvent.capabilities:
+            self.log_debug("<- user %s (account %s) joined channel %s" % (data.origin.to_s(), data.message[0], data.target.to_s()))
+            data.origin.update_account(account = data.message[0])
+        else:
+            self.log_debug("<- user %s joined channel %s" % (data.origin.to_s(), data.message.to_s()))
 
 class UserPartEvent(Event):
 
@@ -458,7 +505,9 @@ def get_events():
              'CTCPEvent'                    : CTCPEvent(),
              'IRCConnectionReadyEvent'      : IRCConnectionReadyEvent(),
              'MessageEvent'                 : MessageEvent(), # user triggered events
+             'NickChangeEvent'              : NickChangeEvent(),
              'PMEvent'                      : PMEvent(),
+             'AccountEvent'                 : AccountEvent(),
              'JoinEvent'                    : UserJoinEvent(),
              'PartEvent'                    : UserPartEvent(),
              'QuitEvent'                    : UserQuitEvent(),

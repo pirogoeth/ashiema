@@ -38,7 +38,6 @@ class PluginLoader(object):
         # set up logging
         self.log = logging.getLogger('ashiema')
 
-        # assertion
         self._loaded = False
 
         # plugin list and listing type

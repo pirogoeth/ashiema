@@ -9,7 +9,34 @@ import re, logging
 
 import Connection
 
-class Channel(object):
+class Structure(object):
+
+    @staticmethod
+    def log_debug(*args):
+    
+        [logging.getLogger('ashiema').debug(line) for line in args]        
+
+    @staticmethod
+    def log_info(*args):
+    
+        [logging.getLogger('ashiema').info(line) for line in args]        
+
+    @staticmethod
+    def log_warning(*args):
+    
+        [logging.getLogger('ashiema').warning(line) for line in args]        
+
+    @staticmethod
+    def log_error(*args):
+    
+        [logging.getLogger('ashiema').error(line) for line in args]        
+
+    @staticmethod
+    def log_critical(*args):
+    
+        [logging.getLogger('ashiema').critical(line) for line in args]
+
+class Channel(Structure):
 
     __channels = {}
     
@@ -131,7 +158,7 @@ class Channel(object):
         else:
             self.users.update({ nick : user })
 
-class Message(object):
+class Message(Structure):
 
     def __init__(self, data):
 
@@ -187,7 +214,7 @@ class Message(object):
 
         return str(self.data)
 
-class Type(object):
+class Type(Structure):
 
     def __init__(self, typedata):
 
@@ -210,8 +237,54 @@ class Type(object):
         try: return int(self.type)
         except (ValueError): return self.type
 
-class User(object):
+class User(Structure):
     
+    users = []
+    
+    @staticmethod
+    def find_users(nick = None, ident = None, host = None):
+    
+        result = []
+    
+        for user in users:
+            if nick is not None and nick in user.nick:
+                result.append(user)
+            if ident is not None and ident in user.ident:
+                result.append(user)
+            if host is not None and host in user.host:
+                result.append(user)
+        
+        return result
+    
+    @staticmethod
+    def find_user(nick = None, ident = None, host = None):
+        """ This method uses User.find_users and performs a best-fit search on the result if more than one is returned. """
+        
+        result = User.find_users(nick, ident, host)
+        
+        if len(result) == 1: return result[0]
+        
+        User.log_info("Multiple users matched search criteria, picking best fit..")
+        
+        best_match = None
+        method = None
+        
+        for user in users:
+            if nick is not None and nick is user.nick:
+                best_match = user
+                method = 'nickname'
+            if ident is not None and ident is user.ident:
+                best_match = user
+                method = 'ident'
+            if host is not None and host is user.host:
+                best_match = user if best_match is None or method is 'ident' and best_match is user else None
+                method = 'hostname'
+            if best_match is None: continue
+
+        User.log_info("User %s chosen as best match." % (user))
+        
+        return best_match
+
     @staticmethod
     def format_notice(user, message):
     
@@ -222,22 +295,29 @@ class User(object):
     
         return "PRIVMSG %s :%s" % (user, message)
 
-    def __init__(self, userstring):
-
-        self.pattern = re.compile(r"""([^!].+)!(.+)@(.*)""", re.VERBOSE)
+    def __init__(self, userstring, nick = None, ident = None, host = None):
 
         self.connection = Connection.Connection.get_instance()
-        self.userstring = userstring
-        try: self.nick, self.ident, self.host = self.pattern.match(self.userstring).groups()
-        except: self.nick = self.userstring
+
+        if not userstring:
+            self.nick = nick
+            self.ident = ident
+            self.host = host
+            self.account = '*'
+            
+            self.update_userstring()
+        elif userstring:
+            self.pattern = re.compile(r"""([^!].+)!(.+)@(.*)""", re.VERBOSE)
+
+            self.userstring = userstring
+            try: self.nick, self.ident, self.host = self.pattern.match(self.userstring).groups()
+            except: self.nick = self.userstring
+
+        User.users.append(self)
     
     def __repr__(self):
 
         return str(self.userstring)
-    
-    def __eq__(self, name):
-
-        return str(self.nick) == name     
     
     def is_self(self):
 
@@ -245,6 +325,14 @@ class User(object):
             return True
         else:
             return False
+    
+    def update_userstring(self):
+    
+        self.userstring = "%s!%s@%s" % (self.nick, self.ident, self.host)
+    
+    def update_account(self, account = '*'):
+    
+        self.account = account
     
     def message(self, *data):
 
@@ -260,6 +348,21 @@ class User(object):
         
         self.connection.send(message)
     
+    def nick_change(self, nick):
+    
+        self.nick = nick
+        
+        self.update_userstring()
+    
+    def quit(self, message = "Quitting."):
+    
+        users.remove(self)
+    
+    remove = quit
+    
     def to_s(self):
 
-        return str(self.userstring)
+        if self.userstring is not "%s!%s@%s" % (self.nick, self.ident, self.host):
+            self.userstring = "%s!%s@%s" % (self.nick, self.ident, self.host)
+        
+        return self.userstring
