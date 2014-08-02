@@ -75,19 +75,16 @@ class EventHandler(object):
         for event in event_map:
             try:
                 event.run(data)
-            except AssertionError, e:
-                logging.getLogger('ashiema').error("assertion failed.")
+            except AssertionError:
                 [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
-            except Exception:
+            except:
                 [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
 
     def fire_once(self, event, data):
-        """ This method is DANGEROUS! """
-        
+
         try:
             event.run(data)
-        except AssertionError, e:
-            logging.getLogger('ashiema').error("assertion failed.")
+        except AssertionError:
             [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
-        except Exception:
+        except:
             [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
