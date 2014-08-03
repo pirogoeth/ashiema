@@ -151,7 +151,9 @@ class Connection(object):
                 self._password = None
             self.send("NICK %s" % (self.nick))
             self.send("CAP LS")
-            self.send("USER %s %s %s :%s" % (self.nick, self.nick, self.ident, self.real))
+            self.send("USER %s %s * :%s" % (self.nick, self.ident, self.real))
+            user = Structures.User(nick = self.nick, ident = self.ident)
+            user.update_gecos(self.real)
             self._registered = True
     
     def send(self, *lines):
@@ -310,25 +312,41 @@ class Tokener(object):
             :type data: str """
 
         self._raw = data
+
         self.connection = Connection.get_instance()
         self.eventhandler = EventHandler.EventHandler.get_instance()
         # this regular expression splits an IRC line up into four parts:
         # ORIGIN, TYPE, TARGET, MESSAGE
-        regex = "^(?:\:([^\s]+)\s)?([A-Za-z0-9]+)\s(?:([^\s\:]+)\s)?(?:\:?(.*))?$"
+        proto_regex = r"^(?:\:([^\s]+)\s)?([A-Za-z0-9]+)\s(?:([^\s\:]+)\s)?(?:\:?(.*))?$"
+        user_regex = r"([\w\d\-_]+\![~\w\d\-_]+\@[\w\d\-_.]+)"
         # a regular expression to match and dissect IRC protocol messages
         # this is around 60% faster than not using a RE
-        p = re.compile(regex, re.VERBOSE)
+        proto_p = re.compile(proto_regex, re.VERBOSE)
+        user_p = re.compile(user_regex, re.VERBOSE)
         try:
             self.origin, self.type, self.target, self.message = (None, None, None, None)
-            self._origin, self._type, self._target, self._message = p.match(data).groups()
+            self._origin, self._type, self._target, self._message = proto_p.match(data).groups()
             # take each token and initialise the appropriate structure.
-            self.origin = Structures.User(self._origin) if self._origin is not None else None
+            try:
+                if len(user_p.findall(self._origin)) == 0:
+                    self.origin = Structures.Origin(self._origin) if self._origin is not None else None
+                else:
+                    self.origin = Structures.User.find_userstring(self._origin)
+                    if not self.origin:
+                        self.origin = Structures.User(userstring = self._origin)
+            except: self.origin = None
             self.type = Structures.Type(self._type) if self._type is not None else None
             if self._target is None:
                 pass
             elif self._target.startswith('#', 0, 1) is True:
                 self.target = Structures.Channel(self._target)
-            else: self.target = Structures.User(self._target)
+            else: 
+                if self._target == '*':
+                    self.target = self._target
+                else:
+                    try: self.target = Structures.User.find_user(nick = self._target)
+                    except:
+                        self.target = Structures.User(nick = self._target)
             self.message = Structures.Message(self._message)
         except (AttributeError):
             pass

@@ -5,14 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, time, ashiema, datetime, sys, os
+import logging, time, ashiema, datetime, sys, os, re
 from ashiema.util import Configuration
-import Connection, EventHandler, Structures
 from ashiema.util.Configuration import Configuration
+import Connection, EventHandler, Structures
 from Connection import Connection
 from EventHandler import EventHandler
 from PluginLoader import PluginLoader
-from Structures import Channel
+from Structures import Channel, User
 
 class Event(object):
     """ This is the base event class that should be subclassed by all other events
@@ -185,7 +185,7 @@ class ErrorEvent(Event):
     
     def run(self, data):
 
-        logging.getLogger('ashiema').critical('<- %s: %s' % (str(data.type), data.message))
+        self.log_critical('<- %s: %s' % (str(data.type), data.message))
         # adjust the loop shutdown flag
         data.connection.shutdown()
         # check if we should attempt to reconnect
@@ -259,12 +259,11 @@ class CAPEvent(Event):
         elif subcommand == 'NAK':
             self.log_error("Server refused extensions: %s" % (arguments))
             
-
-class RFCEvent(Event):
+class NumericEvent(Event):
 
     def __init__(self):
 
-        Event.__init__(self, "RFCEvent")
+        Event.__init__(self, "NumericEvent")
         self.__register__()
         
         self.connection = Connection.get_instance()
@@ -281,15 +280,38 @@ class RFCEvent(Event):
     def run(self, data):
 
         if data.type.to_i() == 001:
-                    
-    # RPL_WELCOME
-            logging.getLogger('ashiema').info('<- welcome received: %s' % (data.message))
+            # RPL_WELCOME
+            self.log_info('<- welcome received: %s' % (data.message))
         elif data.type.to_i() == 002:
             # RPL_YOURHOST
-            logging.getLogger('ashiema').info('<- %s' % (data.message))
+            self.log_info('<- %s' % (data.message))
+        elif data.type.to_i() == 311:
+            # RPL_WHOISUSER
+            user = User.find_user(data.message[0])
+            if user is None:
+                user = User(nick = data.message[0], ident = data.message[1], host = data.message[2])
+                user.update_gecos(data.message[4])
+        elif data.type.to_i() == 318:
+            # RPL_ENDOFWHOIS
+            self.log_info("<- received whois info for %s" % (data.message[0]))
+        elif data.type.to_i() == 330:
+            # RPL_WHOISACCOUNT
+            user = User.find_user(data.message[0])
+            if user is None:
+                self.connection.send(User.format_whois(data.message[0]))
+            else:
+                user.update_account(account = data.message[1])
         elif data.type.to_i() == 353:
-            # RPL_NAMEREPLY
-            pass
+            # RPL_NAMREPLY
+            # :jenova.maio.me 353 test @ #testing :test @pirogoeth
+            message_pattern = re.compile(r"(?:[=*@])\s([#&]+?[\w\d]+)\s:(.*)", re.VERBOSE)
+            user_pattern = re.compile(r"([*@]?[\w\d\-_]+)", re.VERBOSE)
+            channel, names = message_pattern.findall(data.message.to_s())[0]
+            names = names.split(' ')
+            for name in names:
+                if name.startswith('@') or name.startswith('+'):
+                    name = name[1:]
+                self.connection.send(User.format_whois(name))
         elif data.type.to_i() == 354:
             # RPL_WHOSPCRPL
             channel = Channel.get_channel(data.message[0])
@@ -306,7 +328,7 @@ class RFCEvent(Event):
                 PluginLoader.get_instance().load()
         elif data.type.to_i() == 433:
             # ERR_NICKNAMEINUSE # XXX - Quit just exiting. Implement a nick change/tracking mechanism.
-            logging.getLogger('ashiema').error('<- %s, exiting.' % (data.message))
+            self.log_error('<- %s, exiting.' % (data.message))
             self.connection.shutdown()
         
         if self.callbacks is not None:
@@ -453,7 +475,7 @@ class PingEvent(Event):
 
         if data.message is None:
             data.message = data._raw.split(":")[1]
-        if data.connection.debug: logging.getLogger('ashiema').debug('<- ping received at %s, has data "%s"' % (time.time(), str(data.message)))
+        if data.connection.debug: self.log_debug('<- ping received at %s, has data "%s"' % (time.time(), str(data.message)))
         # form the response message
         resp = "PONG :%s" % (str(data.message))
         data.connection.send(resp)
@@ -497,7 +519,7 @@ class CTCPEvent(Event):
 
 def get_events():
 
-    return { 'RFCEvent'                     : RFCEvent(), # mainly server triggered events
+    return { 'NumericEvent'                 : NumericEvent(), # mainly server triggered events
              'CAPEvent'                     : CAPEvent(),
              'PingEvent'                    : PingEvent(),
              'ErrorEvent'                   : ErrorEvent(),
