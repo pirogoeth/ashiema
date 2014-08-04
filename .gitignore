@@ -13,6 +13,7 @@ plugins/ArtificialIntelligence/brain.old
 plugins/LogReader/filters.db
 plugins/QRGenerator/codes.db
 plugins/QRGenerator/qrcode.test.thtml
+plugins/AsciiDump/*.txt
 LICENSE.min
 
 *.py[cod]
