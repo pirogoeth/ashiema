@@ -293,7 +293,7 @@ class NumericEvent(Event):
                 user.update_gecos(data.message[4])
         elif data.type.to_i() == 318:
             # RPL_ENDOFWHOIS
-            self.log_info("<- received whois info for %s" % (data.message[0]))
+            self.log_debug("<- received whois info for %s" % (data.message[0]))
         elif data.type.to_i() == 330:
             # RPL_WHOISACCOUNT
             user = User.find_user(data.message[0])
@@ -303,8 +303,7 @@ class NumericEvent(Event):
                 user.update_account(account = data.message[1])
         elif data.type.to_i() == 353:
             # RPL_NAMREPLY
-            # :jenova.maio.me 353 test @ #testing :test @pirogoeth
-            message_pattern = re.compile(r"(?:[=*@])\s([#&]+?[\w\d]+)\s:(.*)", re.VERBOSE)
+            message_pattern = re.compile(r"(?:[=*@])\s([#&]+?[\S]+)\s:(.*)", re.VERBOSE)
             user_pattern = re.compile(r"([*@]?[\w\d\-_]+)", re.VERBOSE)
             channel, names = message_pattern.findall(data.message.to_s())[0]
             names = names.split(' ')

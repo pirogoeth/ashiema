@@ -165,8 +165,13 @@ class Channel(Structure):
     
         line = data.message
         
+        user = User.find_user(nick = line[2])
+        if user is None:
+            user = User(nick = line[2], host = line[1])
+        user.update_account(account = line[3] if line[3] is not '0' else '*')
+        
         user = {    'host'      : line[1],
-                    'account'   : line[3] }
+                    'account'   : line[3] if line[3] is not '0' else '*'}
 
         if nick in self.users:
             self.users[nick] = user
@@ -324,8 +329,6 @@ class User(Structure):
     def __init__(self, userstring = None, nick = None, ident = None, host = None):
 
         self.connection = Connection.Connection.get_instance()
-
-        self._raw = userstring
 
         if not userstring:
             self.nick = nick
