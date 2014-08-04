@@ -17,6 +17,7 @@ from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
 from ashiema.util.texttable import TextTable
 from urllib import urlopen, urlencode
 from contextlib import closing
+from datetime import timedelta
 
 class WolframAlpha(Plugin):
 
