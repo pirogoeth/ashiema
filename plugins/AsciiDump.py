@@ -32,6 +32,13 @@ class AsciiDump(Plugin):
     
         self.identification = self.get_plugin("IdentificationPlugin")
     
+    def __is_contained(self, master, target):
+    
+        if os.path.abspath(master) in os.path.abspath(target):
+            return True
+        else:
+            return False
+    
     def handler(self, data):
     
         if data.message == (0, "@ascii-dump"):
@@ -42,7 +49,11 @@ class AsciiDump(Plugin):
                 data.target.message("%s[AsciiDump]: %sPlease provide the name of an art file to dump." % (Escapes.BOLD, Escapes.GREEN))
                 return
             try:
-                with closing(open(self.get_path() + "%s.txt" % (artfile), 'r')) as art:
+                file_path = self.get_path() + "%s.txt" % (artfile)
+                if not self.__is_contained(self.get_path(), file_path):
+                    data.target.message("%s[AsciiDump]: %sInvalid art file path!" % (Escapes.BOLD, Escapes.GREEN))
+                    return
+                with closing(open(file_path, 'r')) as art:
                     for line in art.readlines():
                         data.target.message(line)
             except IOError:
