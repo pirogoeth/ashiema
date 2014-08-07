@@ -21,10 +21,7 @@ from ashiema.PluginLoader import PluginLoader
 from ashiema.util import Configuration, fork
 from ashiema.util.Configuration import Configuration, ConfigurationSection
 
-def main(conf_file):
-    configuration = Configuration()
-    configuration.load(conf_file)
-    
+def ashiema_main(configuration):
     connection = Connection()
     
     config = configuration.get_section('main')
@@ -67,8 +64,13 @@ if __name__ == '__main__':
 
     try: filename = sys.argv[1]
     except IndexError:
-        filename = 'bot.conf'
-    try: main(filename)
+        filename = 'ashiema.conf'
+    try:
+        configuration = Configuration()
+        configuration.load(filename)
     except AttributeError as e:
         print >> sys.__stderr__, "Invalid configuration: %s!" % (filename)
         traceback.print_exc(4)
+
+    try: ashiema_main(configuration)
+    except: raise

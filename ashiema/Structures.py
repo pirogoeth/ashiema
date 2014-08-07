@@ -36,6 +36,21 @@ class Structure(object):
     
         [logging.getLogger('ashiema').critical(line) for line in args]
 
+class Origin(Structure):
+
+    def __init__(self, name):
+    
+        self.connection = Connection.Connection.get_instance()
+        self.name = name
+
+    def __repr__(self):
+    
+        return str(self.name)
+
+    def to_s(self):
+
+        return str(self.name)
+
 class Channel(Structure):
 
     __channels = {}
@@ -150,8 +165,13 @@ class Channel(Structure):
     
         line = data.message
         
+        user = User.find_user(nick = line[2])
+        if user is None:
+            user = User(nick = line[2], host = line[1])
+        user.update_account(account = line[3] if line[3] is not '0' else '*')
+        
         user = {    'host'      : line[1],
-                    'account'   : line[3] }
+                    'account'   : line[3] if line[3] is not '0' else '*'}
 
         if nick in self.users:
             self.users[nick] = user
@@ -242,11 +262,20 @@ class User(Structure):
     users = []
     
     @staticmethod
+    def find_userstring(userstring):
+    
+        for user in User.users:
+            user.update_userstring()
+            if user.userstring == userstring:
+                return user
+            continue
+    
+    @staticmethod
     def find_users(nick = None, ident = None, host = None):
     
         result = []
     
-        for user in users:
+        for user in User.users:
             if nick is not None and nick in user.nick:
                 result.append(user)
             if ident is not None and ident in user.ident:
@@ -263,13 +292,12 @@ class User(Structure):
         result = User.find_users(nick, ident, host)
         
         if len(result) == 1: return result[0]
-        
-        User.log_info("Multiple users matched search criteria, picking best fit..")
+        elif len(result) == 0: return None
         
         best_match = None
         method = None
         
-        for user in users:
+        for user in User.users:
             if nick is not None and nick is user.nick:
                 best_match = user
                 method = 'nickname'
@@ -281,9 +309,12 @@ class User(Structure):
                 method = 'hostname'
             if best_match is None: continue
 
-        User.log_info("User %s chosen as best match." % (user))
-        
         return best_match
+
+    @staticmethod
+    def format_whois(user):
+    
+        return "WHOIS %s" % (user)
 
     @staticmethod
     def format_notice(user, message):
@@ -295,7 +326,7 @@ class User(Structure):
     
         return "PRIVMSG %s :%s" % (user, message)
 
-    def __init__(self, userstring, nick = None, ident = None, host = None):
+    def __init__(self, userstring = None, nick = None, ident = None, host = None):
 
         self.connection = Connection.Connection.get_instance()
 
@@ -305,18 +336,34 @@ class User(Structure):
             self.host = host
             self.account = '*'
             
-            self.update_userstring()
+            if self.connection._registered and (ident is None or host is None):
+                self.connection.send(User.format_whois(self.nick))
+            else:
+                self.update_userstring()
         elif userstring:
             self.pattern = re.compile(r"""([^!].+)!(.+)@(.*)""", re.VERBOSE)
 
             self.userstring = userstring
-            try: self.nick, self.ident, self.host = self.pattern.match(self.userstring).groups()
-            except: self.nick = self.userstring
+            try:
+                self.nick, self.ident, self.host = self.pattern.match(self.userstring).groups()
+            except:
+                self.nick = None
+                self.ident = None
+                self.host = None
+                
+        dupes = User.find_users(nick = self.nick)
+        if len(dupes) > 0:
+            for user in dupes:
+                User.users.remove(user)
+
+        self.gecos = ''
 
         User.users.append(self)
     
     def __repr__(self):
-
+    
+        self.update_userstring()
+        
         return str(self.userstring)
     
     def is_self(self):
@@ -334,6 +381,10 @@ class User(Structure):
     
         self.account = account
     
+    def update_gecos(self, gecos = ''):
+
+        self.gecos = gecos
+
     def message(self, *data):
 
         for slice in data:
@@ -362,7 +413,6 @@ class User(Structure):
     
     def to_s(self):
 
-        if self.userstring is not "%s!%s@%s" % (self.nick, self.ident, self.host):
-            self.userstring = "%s!%s@%s" % (self.nick, self.ident, self.host)
+        self.update_userstring()
         
         return self.userstring
