@@ -69,13 +69,15 @@ class UrbanDictionary(Plugin):
     
     def searchUD(self, term):
         
-        data = urlopen(self.url + "%s" % (
+        requrl = self.url + "%s" % (
             urlencode(
                 {
                     "term" : term
                 }
             )
-        ))
+        )
+        
+        data = urlopen(requrl)
         data = json.loads(data.read())
 
         return data if data is not None else None
@@ -99,19 +101,32 @@ class UrbanDictionary(Plugin):
                     data.target.message("%s[UrbanDictionary]%s: %s%s%s is not defined yet." % (Escapes.BOLD, Escapes.BOLD, Escapes.RED, term, Escapes.RED))
                     return
                 definitions = response['list'][0:4]
+                if len(definitions) == 0:
+                    data.target.message("%s[UrbanDictionary]%s: %s%s%s is not defined yet." % (Escapes.BOLD, Escapes.BOLD, Escapes.RED, term, Escapes.RED))
+                    return                    
                 try:
+                    i = 1
                     for definition in definitions:
-                        data.target.privmsg(" - %sDefinition%s: " % (Escapes.BLUE, Escapes.BLUE) + definition['definition'])
-                        data.target.privmsg(" => %sExample%s: " % (Escapes.GREEN, Escapes.GREEN) + definition['example'])
+                        data.target.privmsg(" - %sDefinition #%s%s: " % (Escapes.BLUE, i, Escapes.BLUE))
+                        for line in definition['definition'].splitlines():
+                            if line.strip() == '':
+                                continue
+                            data.target.privmsg("  -> %s" % (line))
+                        data.target.privmsg(" - %sExamples%s: " % (Escapes.GREEN, Escapes.GREEN))
+                        for line in definition['example'].splitlines():
+                            if line.strip() == '':
+                                continue
+                            data.target.privmsg("  -> %s" % (line))
+                        i += 1
                 except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e:
                     data.target.privmsg(" - %s%sCould not decode results.%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL))
-                    [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+                    [self.log_error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
                     return
-        except: [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+        except: [self.log_error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
 
 __data__ = {
     'name'      : "UrbanDictionary",
-    'version'   : "1.0",
+    'version'   : "1.1",
     'require'   : ["IdentificationPlugin"],
     'main'      : UrbanDictionary,
     'events'    : []
