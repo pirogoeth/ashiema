@@ -36,7 +36,7 @@ def setup_logger(stream = False, path = "logs/ashiema.log"):
         s.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
         logger.addHandler(s)
 
-    handler = handlers.RotatingFileHandler(path, maxBytes = 10000, backupCount = 5)
+    handler = handlers.RotatingFileHandler(path, maxBytes = 64000000, backupCount = 5)
     formatter = logging.Formatter('{%(name)s}[%(levelname)s/%(asctime)s]: %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
