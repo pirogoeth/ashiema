@@ -47,8 +47,14 @@ def ashiema_main(configuration):
         fork()
 
     try:
+        address = config.get_string('address', '127.0.0.1')
+        if address.startswith("[") and address.endswith("]"):
+            inettype = 6
+        else:
+            inettype = 4
         connection.connect(
             address  = config.get_string('address', '127.0.0.1'),
+            inettype = inettype,
             port     = config.get_int('port', 6667),
             _ssl     = config.get_bool('ssl', False),
             password = config.get_string('password', None)

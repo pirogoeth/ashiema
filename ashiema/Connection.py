@@ -42,7 +42,7 @@ class Connection(object):
 
         Connection.__instance = self
     
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = None
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
         self._queue = collections.deque()
@@ -95,7 +95,7 @@ class Connection(object):
         # change the value that controls the connection loop
         self._connected = False
         
-    def connect(self, address = '', port = '', _ssl = None, password = None):
+    def connect(self, address = '', inettype = 4, port = '', _ssl = None, password = None):
         """ py:function:: connect(self[, address = ''[, port = ''[, _ssl = None[, password = None]]]])
 
             Checks if the connection socket should be ssl wrapped and wraps it if so, and connects
@@ -103,6 +103,8 @@ class Connection(object):
             
             :param address: Address of the server to connect to.
             :type address: str
+            :param inettype: Inet socket type.
+            :type inettype: int
             :param port: Port to connect to on the specified server.
             :type port: str
             :param _ssl: Whether or not the socket should be SSL wrapped.
@@ -112,6 +114,13 @@ class Connection(object):
             :returns: current Connection instance for chaining.
             :rtype: Connection """
             
+        if inettype == 4:
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        elif inettype == 6:
+            self._socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            address = address[1:-1]
+        else:
+            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         if _ssl is True:
             self.connection = ssl.wrap_socket(self._socket)
@@ -124,6 +133,7 @@ class Connection(object):
             self.log.warning("Connection type not specified, assuming plain.")
         if password is not None or password is not '':
             self._passrequired, self._password = (True, password)
+
         try: self.connection.connect((address, int(port)))
         except: raise
         self._connected = True
