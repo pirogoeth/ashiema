@@ -30,6 +30,9 @@ class Event(object):
         self.callbacks = {}
 
         self.get_method_ident = lambda func: str(func.__module__) + str(func.__name__)
+
+        self.__cancellable = True
+        self.__cancelled = False
         
     def __repr__(self):
 
@@ -91,6 +94,26 @@ class Event(object):
         
         [self.logger.critical('[' + self.name + '] ' + message) for message in args]
     
+    def is_cancelled(self):
+        """ returns whether or not the event has been cancelled """
+        
+        return self.__cancelled
+    
+    def is_cancellable(self):
+        """ returns whether or not the event can be cancelled """
+        
+        return self.__cancellable
+    
+    def cancel(self, b):
+        """ sets whether or not to cancel the function, 
+            returns the new cancellation status """
+        
+        if self.__cancellable:
+            self.__cancelled = b
+            return b
+        elif not self.__cancellable:
+            return False
+    
     def match(self, data):
         """ this is a method that will provide the hooking system a mechanism
             to detect if a certain data value triggers a match on a registered
@@ -100,9 +123,13 @@ class Event(object):
 
     def run(self, data):
         """ this provides a method to run when a line triggers an event.
-            it must be overloaded. """
+            it should be overloaded. """
         
-        pass
+        for callback in self.callbacks.values():
+            if self.is_cancelled():
+                break
+            else:
+                callback()
 
 
 class PluginsLoadedEvent(Event):
@@ -112,6 +139,8 @@ class PluginsLoadedEvent(Event):
 
         Event.__init__(self, "PluginsLoadedEvent")
         self.__register__()
+        
+        self.__cancellable = False
 
     def match(self, data = None):
 
@@ -132,6 +161,8 @@ class IRCConnectionReadyEvent(Event):
     
         Event.__init__(self, "IRCConnectionReadyEvent")
         self.__register__()
+        
+        self.__cancellable = False
         
     def match(self, data = None):
     
@@ -156,6 +187,8 @@ class ModeChangeEvent(Event):
         self.__register__()
         self.commands = ['MODE', 'OMODE', 'UMODE']
     
+        self.__cancellable = False
+    
     def match(self, data = None):
 
         if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
@@ -175,6 +208,8 @@ class ErrorEvent(Event):
 
         Event.__init__(self, "ErrorEvent")
         self.__register__()
+    
+        self.__cancellable = False
     
     def match(self, data):
 
@@ -202,6 +237,8 @@ class PMEvent(Event):
         self.__register__()
         self.commands = ['PRIVMSG']
 
+        self.__cancellable = False
+
     def match(self, data):
 
         if self.commands.__contains__(str(data.type)) and str(data.target) == data.connection.nick:
@@ -224,6 +261,8 @@ class CAPEvent(Event):
         Event.__init__(self, "CAPEvent")
         self.__register__()
         self.commands = ['CAP']
+        
+        self.__cancellable = False
         
         self.connection = Connection.get_instance()
         self.config = Configuration.get_instance().get_section('main')
@@ -265,6 +304,8 @@ class NumericEvent(Event):
 
         Event.__init__(self, "NumericEvent")
         self.__register__()
+        
+        self.__cancellable = False
         
         self.connection = Connection.get_instance()
         self.config = Configuration.get_instance().get_section('main')
@@ -342,6 +383,8 @@ class MessageEvent(Event):
         self.__register__()
         self.commands = ['PRIVMSG']
 
+        self.__cancellable = False
+
     def match(self, data):
 
         if self.commands.__contains__(str(data.type)) and str(data.target) != data.connection.nick:
@@ -359,6 +402,8 @@ class AccountEvent(Event):
     
         Event.__init__(self, "AccountEvent")
         self.__register__()
+    
+        self.__cancellable = False
     
     def match(self, data):
     
@@ -383,6 +428,8 @@ class NickChangeEvent(Event):
         Event.__init__(self, "NickChangeEvent")
         self.__register__()
     
+        self.__cancellable = False
+    
     def match(self, data):
     
         if str(data.type) == 'NICK':
@@ -402,6 +449,8 @@ class UserJoinEvent(Event):
 
         Event.__init__(self, "UserJoinEvent")
         self.__register__()
+    
+        self.__cancellable = False
     
     def match(self, data):
 
@@ -425,6 +474,8 @@ class UserPartEvent(Event):
         Event.__init__(self, "UserPartEvent")
         self.__register__()
     
+        self.__cancellable = False
+    
     def match(self, data):
 
         if str(data.type) == 'PART':
@@ -444,6 +495,9 @@ class UserQuitEvent(Event):
     def __init__(self):
 
         Event.__init__(self, "UserQuitEvent")
+        self.__register__()
+        
+        self.__cancellable = False
        
     def match(self, data):
 
@@ -462,6 +516,8 @@ class PingEvent(Event):
 
         Event.__init__(self, "PingEvent")
         self.__register__()
+        
+        self.__cancellable = False
    
     def match(self, data):
 
@@ -486,6 +542,8 @@ class CTCPEvent(Event):
 
         Event.__init__(self, "CTCPEvent")
         self.__register__()
+        
+        self.__cancellable = False
         
     def match(self, data):
 

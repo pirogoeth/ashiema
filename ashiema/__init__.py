@@ -7,8 +7,8 @@
 
 import hashlib
 
-__all__ = ['Connection', 'Events', 'EventHandler', 'HelpFactory', 
-       'Logger', 'Plugin', 'PluginLoader', 'Structures', 'Tokenizer']
+__all__ = ['Connection', 'EventHandler', 'Events', 'HelpFactory', 
+       'Logger', 'Plugin', 'PluginLoader', 'Scheduler', 'Structures']
 
 version = "1.1-dev"
 
