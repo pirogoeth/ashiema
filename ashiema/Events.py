@@ -166,7 +166,7 @@ class IRCConnectionReadyEvent(Event):
         
     def match(self, data = None):
     
-        if str(data.target) == '*' and str(data.message).lstrip().startswith("***") and not data.connection._registered:
+        if (str(data.target) == '*' or data.target == None) and str(data.message).lstrip().startswith("***") and not data.connection._registered:
             return True
         else:
             return False
@@ -289,7 +289,10 @@ class CAPEvent(Event):
             for extension in self.extensions:
                 if extension in arguments:
                     extensionlist.append(extension)
-            self.connection.send("CAP REQ :%s" % (' '.join(extensionlist)))
+            if len(extensionlist) == 0:
+                self.connection.send("CAP END")
+            else:
+                self.connection.send("CAP REQ :%s" % (' '.join(extensionlist)))
         elif subcommand == 'ACK':
             for capability in arguments:
                 CAPEvent.capabilities.append(capability)

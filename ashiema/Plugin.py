@@ -15,7 +15,7 @@ from util.Configuration import Configuration, ConfigurationSection
 class Plugin(object):
     """ this is the plugin implementation. """
     
-    def __init__(self, needs_dir = False, needs_comm_pipe = False):
+    def __init__(self, needs_dir = False, needs_comm_pipe = False, needs_event_pipe = False):
         # you need to register events and commands and such right in here.
         
         self.connection = Connection.get_instance()
@@ -44,6 +44,12 @@ class Plugin(object):
             self.__pipe = self.connection.get_send_pipe()
         else: 
             self.__pipe = None
+        
+        # set up event pipe
+        if needs_event_pipe:
+            self.__event_pipe = self.eventhandler.get_event_pipe()
+        else:
+            self.__event_pipe = None
     
     def __deinit__(self):
         # you need to deregister events and commands right here. this will be called by the plugin loader.
@@ -128,4 +134,15 @@ class Plugin(object):
         """ send data through the comm pipe, if it is enabled. """
 
         try: [self.__pipe.send(data) for data in args]
+        except: return
+    
+    def allows_event_pipelining(self):
+        """ returns whether or not events can be sent over the eventhandler event pipe """
+        
+        return self.__event_pipe is not None
+    
+    def push_event(self, event, data):
+        """ pushes an event through the event pipe, if it is enabled. """
+        
+        try: self.__event_pipe.send("%s,%s,%s" % ("!PUSH", event.name, data));
         except: return

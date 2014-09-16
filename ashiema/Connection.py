@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback
+import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback, inspect
 import Logger, EventHandler, Scheduler, Structures, PluginLoader
 from PluginLoader import PluginLoader
 from Scheduler import Scheduler
@@ -217,6 +217,25 @@ class Connection(object):
             :returns: Sending side of the multiprocessing.Pipe connection.
             :rtype: multiprocessing.Connection """
         
+        frame = inspect.currentframe()
+        callstack = inspect.getouterframes(frame, 2)
+        caller = callstack[1][0]
+        callerinfo = inspect.getframeinfo(caller)
+        
+        if 'self' in caller.f_locals:
+            caller_class = caller.f_locals['self'].__class__.__name__
+        else:
+            caller_class = None
+        
+        caller_name = callerinfo[2]
+        
+        if caller_class:
+            caller_string = "%s.%s" % (caller_class, caller_name)
+        else:
+            caller_string = "%s" % (caller_name)
+        
+        self.log.debug("Dispatching comm. pipe to %s" % (caller_string))
+
         return self._comm_pipe_send
    
     def run(self):
