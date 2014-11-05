@@ -5,9 +5,9 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import hashlib
+import hashlib, inspect
 
-__all__ = ['Connection', 'EventHandler', 'Events', 'HelpFactory', 
+__all__ = ['Connection', 'Database', 'EventHandler', 'Events', 'HelpFactory', 
        'Logger', 'Plugin', 'PluginLoader', 'Scheduler', 'Structures']
 
 version = "1.1-dev"
@@ -16,3 +16,4 @@ def md5(data):
     _m = hashlib.md5()
     _m.update(data)
     return _m.hexdigest()
+

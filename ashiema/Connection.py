@@ -9,7 +9,7 @@ import socket, select, ssl, logging, time, signal, sys, collections, multiproces
 import Logger, EventHandler, Scheduler, Structures, PluginLoader
 from PluginLoader import PluginLoader
 from Scheduler import Scheduler
-from util import Configuration
+from util import get_caller, Configuration
 from util.Configuration import Configuration
 
 """ module:: Connection
@@ -217,24 +217,8 @@ class Connection(object):
             :returns: Sending side of the multiprocessing.Pipe connection.
             :rtype: multiprocessing.Connection """
         
-        frame = inspect.currentframe()
-        callstack = inspect.getouterframes(frame, 2)
-        caller = callstack[1][0]
-        callerinfo = inspect.getframeinfo(caller)
         
-        if 'self' in caller.f_locals:
-            caller_class = caller.f_locals['self'].__class__.__name__
-        else:
-            caller_class = None
-        
-        caller_name = callerinfo[2]
-        
-        if caller_class:
-            caller_string = "%s.%s" % (caller_class, caller_name)
-        else:
-            caller_string = "%s" % (caller_name)
-        
-        self.log.debug("Dispatching comm. pipe to %s" % (caller_string))
+        self.log.debug("Dispatching comm. pipe to %s" % (get_caller()))
 
         return self._comm_pipe_send
    
@@ -416,3 +400,4 @@ class Tokener(object):
                 self.origin.message(message)
         else:
             self.target.message(message)
+

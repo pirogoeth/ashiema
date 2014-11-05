@@ -3,7 +3,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, re, logging, sys, signal, htmlentitydefs, ast
+import os, re, logging, sys, signal, htmlentitydefs, ast, inspect
 
 all = ['Configuration', 'Escapes', 'texttable', 'apscheduler']
 
@@ -65,3 +65,24 @@ def fix_unicode(text):
             return ur"%s\%s" % (match.group(1), match.group(2))
     
     ast.literal_eval("'%s'" % re.sub(ur"(\\+)(')", sub, text))
+
+def get_caller():
+
+    frame = inspect.currentframe()
+    callstack = inspect.getouterframes(frame, 2)
+    caller = callstack[2][0]
+    callerinfo = inspect.getframeinfo(caller)
+    
+    if 'self' in caller.f_locals:
+        caller_class = caller.f_locals['self'].__class__.__name__
+    else:
+        caller_class = None
+    
+    caller_name = callerinfo[2]
+    
+    if caller_class:
+        caller_string = "%s.%s" % (caller_class, caller_name)
+    else:
+        caller_string = "%s" % (caller_name)
+
+    return caller_string

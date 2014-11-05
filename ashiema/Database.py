@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 
-import sqlite3, logging, types, inspect, traceback
+import sqlite3, types, logging
+from util import get_caller
 from Events import Event
 from EventHandler import EventHandler
 
@@ -13,13 +14,14 @@ class DBManager(object):
 
         return __instance
 
-    def __init__(self, db_uri):
+    def __init__(self):
 
+        self.__maps = []
+        self._log = logging.getLogger('ashiema')
+        
         try: self.__db = sqlite3.connect(db_uri)
         except: self.__db = None
 
-        self.__maps = []
-        
         self.__dbrevent = DBReadyEvent()
         EventHandler.get_instance().get_event("PluginsLoadedEvent").register(self.__on_plugins_loaded)
     
@@ -27,10 +29,14 @@ class DBManager(object):
     
         EventHandler.get_instance().fire_once(self.__dbrevent, (None))
 
-    def register_mapper(self, map):
+    def register_mapper(self, mapper):
 
-        if not isinstance(map, DBMapper):
+        if not isinstance(mapper, DBMapper):
             pass
+
+        self.__maps.append(mapper)
+
+        self._log.debug("Registered database mapper from [%s]" % (get_caller()))
 
 class DBMapper(object):
 
