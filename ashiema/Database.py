@@ -24,10 +24,23 @@ class DBManager(object):
 
         self.__dbrevent = DBReadyEvent()
         EventHandler.get_instance().get_event("PluginsLoadedEvent").register(self.__on_plugins_loaded)
+
+        # self.__tbl_conflict_check()
     
     def __on_plugins_loaded(self):
     
         EventHandler.get_instance().fire_once(self.__dbrevent, (None))
+
+    def __tbl_conflict_check(self):
+
+        tbl_names = [dbm._table for dbm in self.__maps]
+
+        for dbm, name in zip(self.__maps, tbl_names):
+            pass
+
+    def get_database(self):
+
+        return self.__db
 
     def register_mapper(self, mapper):
 
