@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-import sqlite3, logging, types, inspect
+import sqlite3, logging, types, inspect, traceback
 from Events import Event
 from EventHandler import EventHandler
 
@@ -34,16 +34,19 @@ class DBManager(object):
 
 class DBMapper(object):
 
-    def __init__(self, db, keys, keytypes, table = None, primary_ind = 0, autoincr_ind = True):
+    def __init__(self, db, keys, keytypes, options = {'primaryIndex' : 0, 'autoincrIndex' : True}):
 
         self._db = db
-        self._table = self.__class__.__name__.lower() if not table else table
+        self._options = options
+        self._table = self.__class__.__name__.lower() if 'tableName' not in self._options else self._options['tableName']
 
         self._keys = keys
         self._keytypes = keytypes
-        self._primary = self._keys[primary_ind]
-        self._primary_ind = primary_ind
-        self._autoincr_ind = autoincr_ind
+
+        self._primary_ind = self._options['primaryIndex']
+        self._autoincr_ind = self._options['autoincrIndex']
+
+        self._primary = self._keys[self._primary_ind]
 
         self.__generate_structure()
         self.__generate_getters()
@@ -52,17 +55,16 @@ class DBMapper(object):
 
     def __log_execute(self, cur, sql, fetch = 'one', limit = -1, args = ()):
         
-        s = sql
-        print " -> SQL Query: " + s
+        query = sql
         try:
             if len(args) >= 1:
-                print " --> Query Arguments: ", args
-                cur.execute("select " + ", ".join(["quote(?)" for i in args]))
+                cur.execute("select " + ", ".join(["quote(?)" for i in args]), args)
                 quoted_values = cur.fetchone()
                 for quoted_value in quoted_values:
-                    s = s.replace('?', quoted_value, 1)
-        except: pass
-        cur.execute(sql, args)
+                    query = query.replace('?', str(quoted_value), 1)
+        except: pass 
+        try: cur.execute(query)
+        except (sqlite3.ProgrammingError): cur.execute(query, args)
         if fetch == 'one':
             return cur.fetchone()
         elif fetch == 'many':
@@ -83,7 +85,6 @@ class DBMapper(object):
 
         # use pragma constructs to get table into
         tblinfo = self.__get_table_info()
-        print " -> Table Schema: ", tblinfo
 
         # create the table if the statement does not exist
         if len(tblinfo) == 0:
@@ -129,17 +130,22 @@ class DBMapper(object):
 
         for _key in self._keys:
             def getter_templ(self, __key = _key):
+                if __key not in self._keys:
+                    return
                 cur = self._db.cursor()
                 # select * from table where key=<key>
                 query = "select %s from %s where %s=?" % (__key, self._table, self._primary)
                 result = self.__log_execute(cur, query, args = (getattr(self, "_%s" % (self._primary)),))
-                return result[0]
+                try: return result[0]
+                except: return result
             setattr(self, "get_%s" % (_key), types.MethodType(getter_templ, self))
 
     def __generate_setters(self):
 
         for _key in self._keys:
             def setter_templ(self, value, __key = _key):
+                if __key not in self._keys:
+                    return
                 cur = self._db.cursor()
                 # update table set key=value where primary=id
                 query = "update %s set %s=? where %s=?" % (
@@ -164,7 +170,7 @@ class DBMapper(object):
         vals = []
         for key in self._keys:
             if key == self._primary and self._autoincr_ind:
-                vals.append(None) # Put 0 in for the index since it's going to be autoincr'd
+                vals.append(None) # Put None in for the index since it's going to be autoincr'd
             else:
                 vals.append(getattr(self, "_%s" % (key)))
         qst = ', '.join(["?" for item in vals])
@@ -185,7 +191,7 @@ class DBMapper(object):
             whc.append("%s=?" % (pair[0]))
         query = "select * from %s where %s" % (self._table, ','.join(whc))
         result = self.__log_execute(cur, query, args = vals)
-        for key, dbv in zip(keys, result):
+        for key, dbv in zip(self._keys, result):
             setattr(self, "_%s" % (key), dbv)
 
     def save(self):
