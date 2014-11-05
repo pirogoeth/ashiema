@@ -1,10 +1,10 @@
 #!/usr/bin/env python2.7
 
-import sqlite3
+import sqlite3, logging, types, inspect
 from Events import Event
 from EventHandler import EventHandler
 
-class DBObject(object):
+class DBManager(object):
 
     __instance = None
     
@@ -13,19 +13,26 @@ class DBObject(object):
 
         return __instance
 
-    def __init__(self, db_uri = "ashiema.db"):
+    def __init__(self, db_uri):
 
         try: self.__db = sqlite3.connect(db_uri)
         except: self.__db = None
+
+        self.__maps = []
         
-        self.__dbrevent = DBRegistrationEvent()
+        self.__dbrevent = DBReadyEvent()
         EventHandler.get_instance().get_event("PluginsLoadedEvent").register(self.__on_plugins_loaded)
     
     def __on_plugins_loaded(self):
     
         EventHandler.get_instance().fire_once(self.__dbrevent, (None))
 
-class DBRecord(object):
+    def register_mapper(self, map):
+
+        if not isinstance(map, DBMapper):
+            pass
+
+class DBMapper(object):
 
     def __init__(self, db, keys, keytypes, table = None, primary_ind = 0, autoincr_ind = True):
 
@@ -76,7 +83,8 @@ class DBRecord(object):
 
         # use pragma constructs to get table into
         tblinfo = self.__get_table_info()
-        
+        print " -> Table Schema: ", tblinfo
+
         # create the table if the statement does not exist
         if len(tblinfo) == 0:
             ins = zip(self._keys, self._keytypes)
@@ -158,11 +166,11 @@ class DBRecord(object):
             if key == self._primary and self._autoincr_ind:
                 vals.append(None) # Put 0 in for the index since it's going to be autoincr'd
             else:
-                vals.append(getattr(self, key))
+                vals.append(getattr(self, "_%s" % (key)))
         qst = ', '.join(["?" for item in vals])
         query = "insert into %s values (%s)" % (self._table, qst)
         self.__log_execute(cur, query, args = vals)
-        setattr(self, self._primary, cur.lastrowid)
+        setattr(self, "_%s" % (self._primary), cur.lastrowid)
 
     def load(self, **kw):
 
@@ -184,11 +192,11 @@ class DBRecord(object):
 
         self._db.commit()
 
-class DBRegistrationEvent(Event):
+class DBReadyEvent(Event):
 
     def __init__(self):
         
-        Event.__init__(self, "DBRegistrationEvent")
+        Event.__init__(self, "DBReadyEvent")
         self.__register__()
     
     def match(self, data):
