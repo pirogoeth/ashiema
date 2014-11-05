@@ -80,3 +80,4 @@ if __name__ == '__main__':
 
     try: ashiema_main(configuration)
     except: raise
+
