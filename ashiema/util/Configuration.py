@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 
-# ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
-#
-# An extended version of the license is included with this software in `ashiema.py`.
-
-import copy
+import copy, urllib2, json, weakref
+from urllib2 import urlopen
 
 class ConfigurationSection(dict):
     """ modified dictionary that returns none for invalid keys """
     
     def __init__(self):
+
         dict.__init__(self)
         
         self.mutable = True
@@ -49,8 +46,10 @@ class ConfigurationSection(dict):
 
     def get_string(self, key, default = ""):
     
-        try: return str(self.get(key)) or default
-        except: return default
+        try:
+            if str(self.get(key)) == '!None': return None 
+            return str(self.get(key)) or default
+        except: raise
     
     def get_int(self, key, default = None):
     
@@ -85,6 +84,28 @@ class ConfigurationSection(dict):
                 return default
         except: return default
 
+class SectionPromise(object):
+    """ this is a configuration section promise
+        to make resolution of linked sections post-load
+        easier. """
+    
+    promises = []
+    
+    def __init__(self, section, key, link):
+        
+        self.section = section
+        self.key = key
+        self.link = link
+
+        SectionPromise.promises.append(self)
+
+    def resolve(self):
+    
+        config = Configuration.get_instance()
+        section = config.get_section(self.section)
+        link = config.get_section(self.link)
+        section.set(self.key, link)
+
 class Configuration(object):
     """ this will hold the configuration.
         it will not actually read the configuration itself, but it
@@ -114,12 +135,23 @@ class Configuration(object):
     def __add_section(self, section_name):
         """ adds a new configuration section to the main dictionary. """
         
-        self.__container[section_name] = ConfigurationSection()
+        section = ConfigurationSection()
+        self.__container.set(section_name, section)
+        
+        return section
     
     def __remove_section(self, section_name):
         """ removes a section from the main dictionary. """
         
         del self.__container[section_name]
+
+    def __resolve_links(self):
+        """ resolves all linked references. """
+        
+        for promise in SectionPromise.promises:
+            promise.resolve()
+        
+        SectionPromise.promises = []
 
     def has_section(self, section_name):
         """ return if x has a section """
@@ -147,19 +179,24 @@ class Configuration(object):
         """ load a file and read in the categories and variables """
 
         self._filename = file
+
         try: f = open(file, 'r')
         except IOError, e:
             return
+
         if self.loaded: self.__container.clear()
         section_name = None
+
         for line in f.readlines():
-            line = line.strip('\n')
+            line = line.strip('\n').lstrip()
+
             if line.startswith('#') or line.startswith('//'):
                 continue
             elif line.endswith('{'):
                 # section
                 section_name = line.split('{')[0].strip()
-                self.__add_section(section_name)
+                if not self.get_section(section_name):
+                    self.__add_section(section_name)
                 continue
             elif line.startswith('}') and line.endswith('}'):
                 section_name = None
@@ -170,10 +207,36 @@ class Configuration(object):
                 # strip whitespace
                 set[0] = set[0].strip()
                 set[1] = set[1].lstrip() if set[1] is not '' or ' ' else None
+                if set[1][-1] == ';': set[1] = set[1][0:-1]
                 section = self.get_section(section_name)
-                section.set(set[0], set[1])
+                if set[1].startswith('+'): # typed reference / variable
+                    decl = set[1].split(':')
+                    datatype = decl[0][1:]
+                    value = decl[1]
+                    if datatype.lower() == 'file':
+                        try:
+                            section.set(set[0], open(value, 'r'))
+                        except:
+                            try: section.set(set[0], open(value, 'w+'))
+                            except: section.set(set[0], None)
+                    elif datatype.lower() == 'url':
+                        try: section.set(set[0], urlopen(value))
+                        except: section.set(set[0], None)
+                    elif datatype.lower() == 'list':
+                        try: section.set(set[0], json.loads(value))
+                        except: section.set(set[0], []);
+                elif set[1].startswith('@'): # linked reference / section reference
+                    link_name = set[1][1:]
+                    if not self.get_section(link_name):
+                        section.set(set[0], SectionPromise(section_name, set[0], link_name))
+                    else:
+                        link = self.get_section(link_name)
+                        section.set(set[0], link)
+                else: section.set(set[0], set[1])
                 continue
             else:
                 continue
+        self.__resolve_links()
+
         self.loaded = True
         f.close()
