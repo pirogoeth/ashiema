@@ -6,7 +6,7 @@
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import os, logging, ashiema, traceback
-from ashiema import Plugin, Events, HelpFactory, Database
+from ashiema import md5, Plugin, Events, HelpFactory, Database
 from ashiema.Database import DBManager, DBMapper
 from ashiema.Events import Event
 from ashiema.Plugin import Plugin
@@ -48,7 +48,8 @@ class Authentication(object):
     
     def user_register(self, username, password):
     
-        pass
+        u = User()
+        u.find(username = username)
     
     def user_setlevel(self, username, privilege):
     
@@ -59,8 +60,8 @@ class User(DBMapper):
     def __init__(self):
     
         db = DBManager.get_instance().get_database()
-        keys =      ['user_id', 'username', 'authtoken',    'last_login',   'last_ip',  'totp_enabled', 'totp_secret',  'permission']
-        ktypes =    ['integer', 'text',     'text',         'datetime'      'text',     'boolean',      'text'          'integer']
+        keys =      ['user_id', 'username', 'authtoken',    'last_login', 'last_addr',  'totp_enabled', 'totp_secret',  'permission', 'fail_count']
+        ktypes =    ['integer', 'text',     'text',         'datetime'    'text',       'boolean',      'text'          'integer',    'integer']
         
         DBMapper.__init__(self, db, keys, ktypes)
 
