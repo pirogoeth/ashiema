@@ -5,7 +5,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, traceback
+import os, logging, ashiema, traceback, datetime
 from ashiema import md5, Plugin, Events, HelpFactory, Database
 from ashiema.Database import DBManager, DBMapper
 from ashiema.Events import Event
@@ -13,7 +13,7 @@ from ashiema.Plugin import Plugin
 from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from ashiema.util import Escapes
 
-class Authentication(object):
+class Authentication(Plugin):
 
     def __init__(self):
     
@@ -25,6 +25,7 @@ class Authentication(object):
     
         DBManager.get_instance().register_mapper(User)
         DBManager.get_instance().register_mapper(Session)
+        DBManager.get_instance().register_mapper(AuthActivity)
     
     def __load(self):
     
@@ -37,23 +38,99 @@ class Authentication(object):
     def get_session_dbm(self):
 
         return Session
+
+    def get_auth_activity_dbm(self):
+
+        return AuthActivity
     
-    def user_login(self, username, password):
+    def user_login(self, context, username, password):
     
-        pass
-    
-    def user_logout(self, username):
-    
-        pass
-    
-    def user_register(self, username, password):
-    
+        aa = AuthActivity.get_new_authactivity()
+        aa.set_actor(context.user.to_s())
+
+        s = Session()
+        s.find(user_ident = context.user.to_s())
+        if s.get_user_id() and s.get_active():
+            aa.set_event_type("USER_LOGIN_FAIL_EXISTS")
+            raise SessionException("Session is already active.")
+        elif s.get_user_id() is None:
+            s.create()
         u = User()
         u.find(username = username)
+        if not u.get_user_id():
+            aa.set_event_type("USER_LOGIN_FAIL_NOT_EXISTS")
+            raise UserException("Invalid username or password.") 
+        authtok = md5(password)
+        if authtok == u.get_authtoken():
+            s.set_active(True)
+            s.set_user_id(u.get_user_id())
+            s.set_start_time(datetime.datetime.now())
+        else:
+            aa.set_event_type("USER_LOGIN_FAIL_INVALID_AUTHTOKEN")
+            raise UserException("Invalid username or password.")
     
-    def user_setlevel(self, username, privilege):
+    def user_logout(self, context):
     
-        pass
+        aa = AuthActivity.get_new_authactivity()
+        aa.set_actor(context.user.to_s())
+
+        s = Session()
+        s.find(user_ident = context.user.to_s())
+        if not s.get_user_id():
+            aa.set_event_type("USER_LOGOUT_FAIL")
+            raise SessionException("No session exists for %s." % (context.user.to_s()))
+        if s.get_active():
+            aa.set_event_type("USER_LOGOUT")
+            aa.set_user_id(s.get_user_id())
+            aa.set_session_id(s.get_session_id())
+            s.set_active(False)
+            return s
+        else:
+            aa.set_event_type("USER_LOGOUT_FAIL")
+            raise SessionException("Session is already closed.")
+    
+    def user_register(self, context, username, password):
+    
+        aa = AuthActivity.get_new_authactivity()
+        aa.set_actor(context.user.to_s())
+
+        u = User()
+        u.find(username = username)
+        if u.get_user_id() is not None:
+            aa.set_event_type("USER_REGISTER_FAIL_EXISTS")
+            raise UserException("User %s already exists." % (username))
+        pwtok = md5(password)
+        u.create()
+        u.set_username(username)
+        u.set_authtoken(pwtok)
+        aa.set_event_type("USER_REGISTER")
+        aa.set_user_id(u.get_user_id())
+
+        return u
+    
+    def user_setlevel(self, context, username, privilege):
+    
+        pass # XXX - implement
+
+class UserException(Exception):
+
+    def __init__(self, value):
+
+        self.value = value
+
+    def __str__(self):
+
+        return repr(self.value)
+
+class SessionException(Exception):
+
+    def __init__(self, value):
+
+        self.value = value
+
+    def __str__(self):
+
+        return repr(self.value)
 
 class User(DBMapper):
 
@@ -70,8 +147,25 @@ class Session(DBMapper):
     def __init__(self):
 
         db = DBManager.get_instance().get_database()
-        keys =      ['session_id',  'start_time',   'seclevel',     'user_id']
-        ktypes =    ['integer',     'datetime',     'integer',      'integer']
+        keys =      ['session_id',  'start_time',   'active',   'seclevel',     'user_id',  'user_ident']
+        ktypes =    ['integer',     'datetime',     'boolean',  'integer',      'integer',  'text']
+
+        DBMapper.__init__(self, db, keys, ktypes)
+
+class AuthActivity(DBMapper):
+
+    @staticmethod
+    def get_new_authactivity():
+
+        aa = AuthActivity()
+        aa.create()
+        aa.set_event_time(datetime.datetime.now())
+
+    def __init__(self):
+
+        db = DBManager.get_instance().get_database()
+        keys =      ['act_id',      'event_time',   'user_id',      'session_id',       'event_type',       'actor']
+        ktypes =    ['integer',     'datetime',     'integer',      'integer',          'text',             'text']
 
         DBMapper.__init__(self, db, keys, ktypes)
 
