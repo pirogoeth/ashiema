@@ -5,14 +5,13 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, time, ashiema, datetime, sys, os, re
-from ashiema.util import Configuration
-from ashiema.util.Configuration import Configuration
+import logging, time, ashiema, datetime, sys, os, re, malibu
 import Connection, EventHandler, Structures
 from Connection import Connection
 from EventHandler import EventHandler
 from PluginLoader import PluginLoader
 from Structures import Channel, User
+from malibu.config.configuration import Configuration
 
 class Event(object):
     """ This is the base event class that should be subclassed by all other events
@@ -130,7 +129,6 @@ class Event(object):
                 break
             else:
                 callback()
-
 
 class PluginsLoadedEvent(Event):
     """ This event represents the completion of the plugin load cycle in the PluginLoader. """

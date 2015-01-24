@@ -9,7 +9,6 @@ import os, logging, ashiema, sys, traceback, re, json, htmlentitydefs
 from ashiema import Plugin, Events, util
 from ashiema.util import Escapes
 from ashiema.util import unescape
-from ashiema.util.texttable import TextTable
 from ashiema.Plugin import Plugin
 from ashiema.PluginLoader import PluginLoader
 from ashiema.HelpFactory import Contexts

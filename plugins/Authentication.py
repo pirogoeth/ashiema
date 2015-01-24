@@ -5,13 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, traceback, datetime
+import os, logging, ashiema, traceback, datetime, malibu
 from ashiema import md5, Plugin, Events, HelpFactory, Database
-from ashiema.Database import DBManager, DBMapper
+from ashiema.Database import DBManager
 from ashiema.Events import Event
 from ashiema.Plugin import Plugin
 from ashiema.HelpFactory import Contexts, CONTEXT, DESC, PARAMS, ALIASES
 from ashiema.util import Escapes
+from malibu.database.dbmapper import DBMapper
 
 class Authentication(Plugin):
 
@@ -139,7 +140,9 @@ class User(DBMapper):
         db = DBManager.get_instance().get_database()
         keys =      ['user_id', 'username', 'authtoken',    'last_login', 'last_addr',  'totp_enabled', 'totp_secret',  'permission', 'fail_count']
         ktypes =    ['integer', 'text',     'text',         'datetime'    'text',       'boolean',      'text'          'integer',    'integer']
-        
+       
+        User.set_db_options(db, keys, ktypes)
+
         DBMapper.__init__(self, db, keys, ktypes)
 
 class Session(DBMapper):
@@ -149,6 +152,8 @@ class Session(DBMapper):
         db = DBManager.get_instance().get_database()
         keys =      ['session_id',  'start_time',   'active',   'seclevel',     'user_id',  'user_ident']
         ktypes =    ['integer',     'datetime',     'boolean',  'integer',      'integer',  'text']
+
+        Session.set_db_options(db, keys, ktypes)
 
         DBMapper.__init__(self, db, keys, ktypes)
 
@@ -166,6 +171,8 @@ class AuthActivity(DBMapper):
         db = DBManager.get_instance().get_database()
         keys =      ['act_id',      'event_time',   'user_id',      'session_id',       'event_type',       'actor']
         ktypes =    ['integer',     'datetime',     'integer',      'integer',          'text',             'text']
+
+        AuthActivity.set_db_options(db, key, ktypes)
 
         DBMapper.__init__(self, db, keys, ktypes)
 

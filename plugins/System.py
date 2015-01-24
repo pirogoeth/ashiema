@@ -13,8 +13,6 @@ from ashiema.Plugin import Plugin
 from ashiema.PluginLoader import PluginLoader
 from ashiema.HelpFactory import Contexts
 from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
-from ashiema.util import Configuration
-from ashiema.util.Configuration import Configuration
 
 class SystemEvent(Event):
 

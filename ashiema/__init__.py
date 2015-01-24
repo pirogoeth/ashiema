@@ -5,10 +5,10 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import hashlib, inspect
+import hashlib, inspect, os, glob
 
-__all__ = ['Connection', 'Database', 'EventHandler', 'Events', 'HelpFactory', 
-       'Logger', 'Plugin', 'PluginLoader', 'Scheduler', 'Structures']
+modules = glob.glob(os.path.dirname(__file__) + "/*.py")
+__all__ = [os.path.basename(f)[:-3] for f in modules if not os.path.basename(f).startswith('_') and not f.endswith('__init__.py') and os.path.isfile(f)]
 
 version = "1.1-dev"
 

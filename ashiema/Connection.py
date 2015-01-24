@@ -5,12 +5,12 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback, inspect
+import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback, inspect, malibu
 import Logger, EventHandler, Scheduler, Structures, PluginLoader
 from PluginLoader import PluginLoader
-from Scheduler import Scheduler
-from util import get_caller, Configuration
-from util.Configuration import Configuration
+from util import get_caller
+from malibu.config.configuration import Configuration
+from malibu.util.scheduler import Scheduler
 
 """ module:: Connection
     :platform: Unix, Windows, Mac OS X

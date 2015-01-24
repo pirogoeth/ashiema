@@ -13,13 +13,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import sys, ashiema, logging, traceback
+import sys, ashiema, logging, traceback, malibu
 from ashiema import Events, Logger, util
 from ashiema.Connection import Connection
 from ashiema.EventHandler import EventHandler
 from ashiema.PluginLoader import PluginLoader
-from ashiema.util import Configuration, fork
-from ashiema.util.Configuration import Configuration, ConfigurationSection
+from ashiema.util import fork
+from malibu.config.configuration import Configuration, ConfigurationSection
 
 def ashiema_main(configuration):
     connection = Connection()

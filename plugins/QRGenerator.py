@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, logging, ashiema, sys, traceback, shelve, random, cStringIO
+import os, logging, ashiema, sys, traceback, shelve, random, cStringIO, qrcode
 from cStringIO import StringIO
 from contextlib import closing
 from ashiema import Plugin, Events, util
@@ -8,13 +8,6 @@ from ashiema.util import Escapes, unescape, fix_unicode
 from ashiema.Plugin import Plugin
 from ashiema.PluginLoader import PluginLoader
 from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
-try:
-    import qrcode
-except (ImportError):
-    logging.getLogger('ashiema').error(
-        'You must have the py-qrcode module installed. ' + \
-        'You can get py-qrcode from http://pypi.python.org/pypi/qrcode/3.0'
-    )
 
 HTTPRequestHandler = object
 

@@ -6,7 +6,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, sys, traceback, time
+import os, logging, ashiema, sys, traceback, time, malibu
 import xml.etree.cElementTree as xtree
 from ashiema import Plugin, Events, util
 from ashiema.util import Escapes
@@ -14,7 +14,7 @@ from ashiema.Plugin import Plugin
 from ashiema.PluginLoader import PluginLoader
 from ashiema.HelpFactory import Contexts
 from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
-from ashiema.util.texttable import TextTable
+from malibu.text.tabletable import TextTable
 from urllib import urlopen, urlencode
 from contextlib import closing
 from datetime import timedelta

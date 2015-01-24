@@ -5,12 +5,11 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, util, os, errno, multiprocessing
+import logging, util, os, errno, multiprocessing, malibu
 from Connection import Connection
 from EventHandler import EventHandler
 from PluginLoader import PluginLoader
-from util import Configuration
-from util.Configuration import Configuration, ConfigurationSection
+from malibu.config.configuration import Configuration, ConfigurationSection
 
 class Plugin(object):
     """ this is the plugin implementation. """
