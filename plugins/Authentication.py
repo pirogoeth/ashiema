@@ -16,6 +16,11 @@ from malibu.database.dbmapper import DBMapper
 
 class Authentication(Plugin):
 
+    PERMISSION_NONE = 0
+    PERMISSION_USER = 1
+    PERMISSION_MOD = 2
+    PERMISSION_ADMIN = 3
+
     def __init__(self):
     
         Plugin.__init__(self, needs_dir = True, needs_comm_pipe = False)
@@ -49,18 +54,25 @@ class Authentication(Plugin):
         aa = AuthActivity.get_new_authactivity()
         aa.set_actor(context.user.to_s())
 
-        s = Session()
-        s.find(user_ident = context.user.to_s())
-        if s.get_user_id() and s.get_active():
-            aa.set_event_type("USER_LOGIN_FAIL_EXISTS")
-            raise SessionException("Session is already active.")
-        elif s.get_user_id() is None:
-            s.create()
-        u = User()
-        u.find(username = username)
-        if not u.get_user_id():
+        s = Session.find(user_ident = context.user.to_s())
+        if len(s) > 0:
+            m = s.filter_equals(username = username)
+            if len(m) > 0:
+                aa.set_event_type("USER_SESSION_FAIL_EXISTS")
+                raise SessionException("Already logged in as %s." % (username))
+            aa.set_event_type("USER_SESSION_MULTI_LOGIN")
+            raise SessionException("Multiple session entries exist for %s." % (context.user.to_s()))
+        else:
+            s = Session.new()
+        u = User.find(username = username)
+        if len(u) == 0:
             aa.set_event_type("USER_LOGIN_FAIL_NOT_EXISTS")
             raise UserException("Invalid username or password.") 
+        elif len(u) > 1:
+            aa.set_event_type("USER_LOGIN_AMBIGUOUS_NAME")
+            raise UserException("Ambiguous username.")
+        else:
+            u = u[0]
         authtok = md5(password)
         if authtok == u.get_authtoken():
             s.set_active(True)
@@ -75,8 +87,7 @@ class Authentication(Plugin):
         aa = AuthActivity.get_new_authactivity()
         aa.set_actor(context.user.to_s())
 
-        s = Session()
-        s.find(user_ident = context.user.to_s())
+        s = Session.find(user_ident = context.user.to_s())
         if not s.get_user_id():
             aa.set_event_type("USER_LOGOUT_FAIL")
             raise SessionException("No session exists for %s." % (context.user.to_s()))
@@ -95,15 +106,13 @@ class Authentication(Plugin):
         aa = AuthActivity.get_new_authactivity()
         aa.set_actor(context.user.to_s())
 
-        u = User()
-        u.find(username = username)
+        u = User.find(username = username)
         if u.get_user_id() is not None:
             aa.set_event_type("USER_REGISTER_FAIL_EXISTS")
             raise UserException("User %s already exists." % (username))
         pwtok = md5(password)
-        u.create()
-        u.set_username(username)
-        u.set_authtoken(pwtok)
+        u = User.new(username = username,
+                     authtoken = pwtok)
         aa.set_event_type("USER_REGISTER")
         aa.set_user_id(u.get_user_id())
 
@@ -141,9 +150,12 @@ class User(DBMapper):
         keys =      ['user_id', 'username', 'authtoken',    'last_login', 'last_addr',  'totp_enabled', 'totp_secret',  'permission', 'fail_count']
         ktypes =    ['integer', 'text',     'text',         'datetime'    'text',       'boolean',      'text'          'integer',    'integer']
        
-        User.set_db_options(db, keys, ktypes)
+        options = DBMapper.get_default_options()
+        options[DBMapper.INDEX_UNIQUE].append('username')
 
-        DBMapper.__init__(self, db, keys, ktypes)
+        User.set_db_options(db, keys, ktypes, options = options)
+
+        DBMapper.__init__(self, db, keys, ktypes, options = options)
 
 class Session(DBMapper):
 
@@ -153,18 +165,19 @@ class Session(DBMapper):
         keys =      ['session_id',  'start_time',   'active',   'seclevel',     'user_id',  'user_ident']
         ktypes =    ['integer',     'datetime',     'boolean',  'integer',      'integer',  'text']
 
-        Session.set_db_options(db, keys, ktypes)
+        options = DBMapper.get_default_options()
+        options[DBMapper.INDEX_UNIQUE].append('user_id')
+        
+        Session.set_db_options(db, keys, ktypes, options = options)
 
-        DBMapper.__init__(self, db, keys, ktypes)
+        DBMapper.__init__(self, db, keys, ktypes, options = options)
 
 class AuthActivity(DBMapper):
 
     @staticmethod
     def get_new_authactivity():
 
-        aa = AuthActivity()
-        aa.create()
-        aa.set_event_time(datetime.datetime.now())
+        return AuthActivity.new(event_time = datetime.datetime.now())
 
     def __init__(self):
 
