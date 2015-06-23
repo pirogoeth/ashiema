@@ -13,30 +13,26 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import sys, ashiema, logging, traceback, malibu
-from ashiema import Events, Logger, util
+import ashiema, logging, malibu, sys, traceback
+
+from ashiema import Events, util
 from ashiema.Connection import Connection
 from ashiema.EventHandler import EventHandler
 from ashiema.PluginLoader import PluginLoader
 from ashiema.util import fork
+
 from malibu.config.configuration import Configuration, ConfigurationSection
+from malibu.util import log
 
 def ashiema_main(configuration):
     connection = Connection()
     
-    config = configuration.get_section('main')
+    ashiema.config = configuration
+    config = configuration.get_section('ashiema')
+   
+    logger = log.LoggingDriver(config = configuration.get_section('logging'))
     
-    Logger.setup_logger(stream = not config.get_bool('fork'),
-                        path = "logs/ashiema-%s.log" % (config.get_string('netname', default = 'nonetname')))
-    
-    log_level = Configuration.get_instance().get_section('logging').get_string('level', 'debug')
-    
-    if config.get_bool('debug'):
-        connection.set_debug(True)
-        Logger.set_level('debug')
-    else: 
-        connection.set_debug(False)
-        Logger.set_level(log_level)
+    connection.set_debug(config.get_bool('debug', False))
 
     connection.setup_info(
         nick     = config.get_string('nick', 'ashiema'),
@@ -48,7 +44,9 @@ def ashiema_main(configuration):
 
     try:
         address = config.get_string('address', '127.0.0.1')
-        if address.startswith("[") and address.endswith("]"):
+        if address.startswith('[') and address.endswith(']'):
+            inettype = 6
+        elif address.startswith('ipv6:'):
             inettype = 6
         else:
             inettype = 4
@@ -75,7 +73,7 @@ if __name__ == '__main__':
         configuration = Configuration()
         configuration.load(filename)
     except AttributeError as e:
-        print >> sys.__stderr__, "Invalid configuration: %s!" % (filename)
+        print >> sys.__stderr__, 'Invalid configuration: %s!' % (filename)
         traceback.print_exc(4)
 
     try: ashiema_main(configuration)

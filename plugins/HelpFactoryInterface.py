@@ -33,7 +33,7 @@ class HelpFactoryInterface(Plugin):
         if ((data.message == (0, 'help') or data.message == (0, '@help')) and data.target.is_self()) or (data.message == (0, '@help') and not data.target.is_self()):
             if data.message.has_index(1): # there is an argument.
                 data.origin.notice("Help for %s%s%s." % (Escapes.BOLD, data.message[1], Escapes.BOLD))
-                for entry in self.helpfactory.getHelpForPlugin(data.message[1]):
+                for entry in self.helpfactory.get_plugin_help(data.message[1]):
                     if entry is None:
                         data.origin.notice("There is no help for %s%s%s." % (Escapes.BOLD, data.message[1], Escapes.BOLD))
                     data.origin.notice("%s%s%s: %s" % (Escapes.BOLD, entry[NAME], Escapes.BOLD, entry[DESC]))

@@ -5,11 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import imp, util, os, logging, traceback, collections
+import ashiema, collections, imp, malibu, os, traceback
+
 from imp import load_source
+
 from EventHandler import EventHandler
 from HelpFactory import HelpFactory, Contexts
-from util.Configuration import Configuration
+
+from malibu.util.log import LoggingDriver
 
 class PluginLoader(object):
     """ this manages loading and unloading of all plugins. """
@@ -36,13 +39,13 @@ class PluginLoader(object):
         self.helpfactory = HelpFactory.get_instance()
 
         # set up logging
-        self.log = logging.getLogger('ashiema')
+        self.log = LoggingDriver.get_logger()
 
         self._loaded = False
 
         # plugin list and listing type
-        self._list_type = Configuration.get_instance().get_section('plugins').get_string('list-type', 'blacklist').lower()
-        self._list = Configuration.get_instance().get_section('plugins').get_string('list', '').split(',') or []
+        self._list_type = ashiema.config.get_section('plugins').get_string('list-type', 'blacklist').lower()
+        self._list = ashiema.config.get_section('plugins').get_string('list', '').split(',') or []
     
     def __call__(self):
 

@@ -5,13 +5,16 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, time, ashiema, datetime, sys, os, re, malibu
+import ashiema, datetime, malibu, os, re, sys, time
+
 import Connection, EventHandler, Structures
 from Connection import Connection
 from EventHandler import EventHandler
 from PluginLoader import PluginLoader
 from Structures import Channel, User
+
 from malibu.config.configuration import Configuration
+from malibu.util.log import LoggingDriver
 
 class Event(object):
     """ This is the base event class that should be subclassed by all other events
@@ -22,8 +25,9 @@ class Event(object):
 
         self.eventhandler = EventHandler.get_instance()
         self.connection = Connection.get_instance()
+        self.config = ashiema.config
 
-        self.logger = logging.getLogger('ashiema')
+        self.logger = LoggingDriver.get_logger()
 
         self.name = event_name
         self.callbacks = {}
@@ -222,7 +226,7 @@ class ErrorEvent(Event):
         # adjust the loop shutdown flag
         data.connection.shutdown()
         # check if we should attempt to reconnect
-        if Configuration.get_instance().get_section('main').get_bool('reconnect-on-err', True):
+        if self.config.get_section('ashiema').get_bool('reconnect-on-err', True):
             self.log_info("======== Preparing to reconnect, stand by. ========")
             sys.argv.insert(0, "python")
             os.execvpe("python", sys.argv, os.environ)
@@ -263,7 +267,7 @@ class CAPEvent(Event):
         self.__cancellable = False
         
         self.connection = Connection.get_instance()
-        self.config = Configuration.get_instance().get_section('main')
+        self.config = self.config.get_section('ashiema')
         self.extensions = self.config.get_list('capextensions')
 
     def match(self, data):
@@ -309,7 +313,7 @@ class NumericEvent(Event):
         self.__cancellable = False
         
         self.connection = Connection.get_instance()
-        self.config = Configuration.get_instance().get_section('main')
+        self.config = self.config.get_section('ashiema')
         self.__conn_hooks__ = self.config.get_string('onconnect', '').split(',')
     
     def match(self, data):

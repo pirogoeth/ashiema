@@ -5,11 +5,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, util, os, errno, multiprocessing, malibu
-from Connection import Connection
-from EventHandler import EventHandler
-from PluginLoader import PluginLoader
+import ashiema, errno, malibu, multiprocessing, os, util
+
+from ashiema.Connection import Connection
+from ashiema.EventHandler import EventHandler
+from ashiema.PluginLoader import PluginLoader
+
 from malibu.config.configuration import Configuration, ConfigurationSection
+from malibu.util.log import LoggingDriver
 
 class Plugin(object):
     """ this is the plugin implementation. """
@@ -26,7 +29,7 @@ class Plugin(object):
 
         self.scheduler = self.connection.get_scheduler()
         
-        self.logger = logging.getLogger('ashiema')
+        self.logger = LoggingDriver.get_logger()
 
         self.logger.debug("Initialising plugin: [" + self.name + "]")
         
@@ -63,13 +66,14 @@ class Plugin(object):
     def get_configuration(self):
         """ returns the system configuration object. """
 
-        return Configuration.get_instance()
+        return ashiema.config
 
     def get_plugin_configuration(self):
         """ returns the configuration dictionary from the system configuration for this
             specific plugin. """
 
-        plugin_dict = self.get_configuration().get_section(self.name)
+        plugin_dict = self.get_configuration().get_section(
+                "plugin:{}".format(self.name))
         return plugin_dict if plugin_dict is not None else ConfigurationSection()
     
     def get_eventhandler(self):

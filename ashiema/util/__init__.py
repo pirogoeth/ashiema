@@ -3,11 +3,14 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, re, logging, sys, signal, htmlentitydefs, ast, inspect
+import ast, hashlib, htmlentitydefs, inspect, malibu, os, re, signal, sys
 
-all = ['Configuration', 'Escapes', 'texttable', 'apscheduler']
+from malibu import util
+from malibu.util.log import LoggingDriver
 
-""" these are some various utilities needed for use in the startup process and other parts of runtime """
+__all__ = ['Escapes']
+
+LOG = LoggingDriver.get_logger()
 
 def fork():
 
@@ -26,34 +29,11 @@ def fork():
             os.chdir(os.getcwd())
             os.umask(0)
         else:
-            logging.getLogger('ashiema').debug("forking as %d" % (pid))
-            logging.getLogger('ashiema').debug("backgrounded from: %s" % (os.getcwd()))
+            LOG.debug("forking as %d" % (pid))
+            LOG.debug("backgrounded from: %s" % (os.getcwd()))
             os._exit(0)
     else:
         os._exit(0)
-
-def unescape(text):
-
-    def fixup(m):
-
-        text = m.group(0)
-        if text[:2] == "&#":
-            # character reference
-            try:
-                if text[:3] == "&#x":
-                    return unichr(int(text[3:-1], 16))
-                else:
-                    return unichr(int(text[2:-1]))
-            except ValueError:
-                pass
-        else:
-            # named entity
-            try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
-            except KeyError:
-                pass
-        return text # leave as is
-    return re.sub("&#?\w+;", fixup, text)
 
 def fix_unicode(text):
 
@@ -86,3 +66,32 @@ def get_caller():
         caller_string = "%s" % (caller_name)
 
     return caller_string
+
+def md5(data):
+
+    _m = hashlib.md5()
+    _m.update(data)
+    return _m.hexdigest()
+
+def unescape(text):
+
+    def fixup(m):
+
+        text = m.group(0)
+        if text[:2] == "&#":
+            # character reference
+            try:
+                if text[:3] == "&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub("&#?\w+;", fixup, text)

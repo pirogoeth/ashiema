@@ -71,7 +71,7 @@ class HelpFactory(object):
 
         del self._help[plugin]
     
-    def getHelpForPlugin(self, plugin):
+    def get_plugin_help(self, plugin):
 
         if not self._help.__contains__(plugin):
             yield None
@@ -80,7 +80,7 @@ class HelpFactory(object):
             entry.update({NAME : key})
             yield entry
     
-    def getHelp(self, filter_func = None):
+    def get_help(self, filter_func = None):
 
         results = []
         
@@ -92,7 +92,7 @@ class HelpFactory(object):
         for entry in filter(filter_func, results):
             yield entry
 
-    def getAllPublicHelp(self):
+    def get_public_help(self):
 
         results = []
 
@@ -104,7 +104,7 @@ class HelpFactory(object):
         for entry in filter(Filters.PUBLIC, results):
             yield entry
 
-    def getAllPrivateHelp(self):
+    def get_private_help(self):
 
         results = []
 
@@ -116,7 +116,7 @@ class HelpFactory(object):
         for entry in filter(Filters.PRIVATE, results):
             yield entry
     
-    def getDualContextHelp(self):
+    def get_dual_help(self):
 
         results = []
         
