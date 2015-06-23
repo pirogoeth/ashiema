@@ -1,16 +1,17 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import logging, traceback, sys
+import malibu, traceback, sys
+
+from malibu.util.log import LoggingDriver
+
 
 class EventHandler(object):
 
     __instance = None
-    
+
     @staticmethod
     def get_instance():
 
@@ -24,6 +25,7 @@ class EventHandler(object):
         EventHandler.__instance = self
 
         self.events = {}
+        self._log = LoggingDriver.find_logger()
 
     def __repr__(self):
 
@@ -35,40 +37,40 @@ class EventHandler(object):
 
     def get_event(self, event):
         """ returns the specified event """
-    
+
         try: return self.events[event]
         except: return None
 
     def get_events(self):
         """ returns the events that have been loaded by the system. """
-        
+
         return self.events
 
     def register(self, event):
         """ register an event in the handler """
-        
+
         self.events.update({event.__get_name__(): event})
-    
+
     def deregister(self, event):
         """ deregister an event from the handler """
-        
+
         self.events.pop(event.__get_name__())
-    
+
     def deregister_all(self):
         """ deregisters all events """
-        
+
         [event.__deregister__() for event in self.events]
-    
+
     def map_events(self, data):
         """ create a list of events that match the given data """
-        
+
         e_map = []
         for event in self.get_events().values():
             if event.match(data):
                 e_map.append(event)
             else: continue
         return self.fire(e_map, data)
-    
+
     def fire(self, event_map, data):
         """ fire all mapped events with provided data """
 
@@ -76,15 +78,15 @@ class EventHandler(object):
             try:
                 event.run(data)
             except AssertionError:
-                [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
+                [self._log.error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
             except:
-                [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
+                [self._log.error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
 
     def fire_once(self, event, data):
 
         try:
             event.run(data)
         except AssertionError:
-            [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
+            [self._log.error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
         except:
-            [logging.getLogger('ashiema').error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]
+            [self._log.error('%s' % (trace)) for trace in traceback.format_exc(4).split('\n')]

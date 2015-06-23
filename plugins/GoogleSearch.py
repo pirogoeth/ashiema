@@ -1,17 +1,22 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, sys, traceback, re, json
-from ashiema import Plugin, Events, util
+import ashiema, datetime, json, malibu, os, re, sys, traceback
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.plugin.mdbm import MDBManager
 from ashiema.util import Escapes, unescape, fix_unicode
-from ashiema.Plugin import Plugin
-from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
-from urllib import urlopen, urlencode
+
+from malibu.database.dbmapper import DBMapper
+from malibu.util.log import LoggingDriver
+
 from datetime import timedelta
+from urllib import urlopen, urlencode
+
 
 class GoogleSearch(Plugin):
     
@@ -28,7 +33,9 @@ class GoogleSearch(Plugin):
             "GoogleSearch__scheduled_cache_clean", self.clean_cache, timedelta(days = 1), recurring = True)
         
         self.url = "https://ajax.googleapis.com/ajax/services/search/web?"
-        self.prefix = "%sG%so%so%sg%sl%se%s" % (Escapes.BLUE, Escapes.RED, Escapes.YELLOW, Escapes.BLUE, Escapes.GREEN, Escapes.RED, Escapes.COLOURED)
+        self.prefix = "%sG%so%so%sg%sl%se%s" % (Escapes.BLUE, Escapes.RED,
+                Escapes.YELLOW, Escapes.BLUE, Escapes.GREEN,
+                Escapes.RED, Escapes.COLOURED)
         
     def __deinit__(self):
     

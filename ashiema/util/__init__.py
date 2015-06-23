@@ -1,16 +1,20 @@
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import ast, hashlib, htmlentitydefs, inspect, malibu, os, re, signal, sys
+import ast, glob, hashlib, htmlentitydefs, inspect, malibu, os, re, signal, sys
 
 from malibu import util
 from malibu.util.log import LoggingDriver
 
-__all__ = ['Escapes']
+modules = glob.glob(os.path.dirname(__file__) + "/*.py")
+__all__ = [os.path.basename(f)[:-3] for f in modules
+           if not os.path.basename(f).startswith('_') and
+           not f.endswith('__init__.py') and os.path.isfile(f)]
 
-LOG = LoggingDriver.get_logger()
+LOG = LoggingDriver.find_logger()
+
 
 def fork():
 
@@ -43,7 +47,7 @@ def fix_unicode(text):
             return match.group()
         else:
             return ur"%s\%s" % (match.group(1), match.group(2))
-    
+
     ast.literal_eval("'%s'" % re.sub(ur"(\\+)(')", sub, text))
 
 def get_caller():
@@ -52,14 +56,14 @@ def get_caller():
     callstack = inspect.getouterframes(frame, 2)
     caller = callstack[2][0]
     callerinfo = inspect.getframeinfo(caller)
-    
+
     if 'self' in caller.f_locals:
         caller_class = caller.f_locals['self'].__class__.__name__
     else:
         caller_class = None
-    
+
     caller_name = callerinfo[2]
-    
+
     if caller_class:
         caller_string = "%s.%s" % (caller_class, caller_name)
     else:

@@ -1,25 +1,29 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, sys, traceback, threading, random
-from ashiema import Plugin, Events, HelpFactory, util
-from ashiema.util import Escapes
-from ashiema.Plugin import Plugin
-from ashiema.HelpFactory import Contexts
-from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
-from urllib import urlopen
-from random import randint
+import ashiema, malibu, os, random, sys, traceback, threading
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.util import md5, Escapes
+
+from malibu.util.log import LoggingDriver
+
 from datetime import timedelta
+from random import randint
+from urllib import urlopen
+
 try:
     import megahal
     has_megahal = True
 except ImportError:
-    logging.getLogger('ashiema').error("You must install py-megahal to use this plugin.")
+    LoggingDriver.find_logger(name = "ashiema").error(
+            "You must install py-megahal to use this plugin.")
     has_megahal = False
+
 
 class ArtificialIntelligence(Plugin):
 

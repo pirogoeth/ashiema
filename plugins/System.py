@@ -1,24 +1,26 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, ashiema, sys, logging, traceback
-from ashiema import Connection, Plugin, Events, HelpFactory
-from ashiema.Connection import Connection
-from ashiema.Events import Event
-from ashiema.Plugin import Plugin
-from ashiema.PluginLoader import PluginLoader
-from ashiema.HelpFactory import Contexts
-from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, NAME, ALIASES
+import ashiema, datetime, malibu, os, traceback
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.plugin.loader import PluginLoader
+from ashiema.util import md5, Escapes
+
+from malibu.database.dbmapper import DBMapper
+from malibu.util.log import LoggingDriver
+
 
 class SystemEvent(Event):
 
     def __init__(self):
 
         Event.__init__(self, "SystemEvent")
+        
         self.__register__()
     
     def match(self, data):
@@ -31,9 +33,10 @@ class SystemEvent(Event):
         # 0 -> reload
         # 1 -> shutdown
         # 2 -> rehash
-        logging.getLogger('ashiema').info('Waiting for plugins to finish up...')
+        self.logger.info('Waiting for plugins to finish up...')
         for callback in self.callbacks.values():
             callback(data)
+
 
 class System(Plugin):
 

@@ -1,33 +1,42 @@
-#!/usr/bin/env python
+# ashiema: a lightweight, modular IRC bot written in python.
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
+#
+# An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, sys, traceback, shelve, random, cStringIO, qrcode
+import ashiema, datetime, malibu, os, sys, traceback
+import cStringIO, random, shelve, qrcode
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.util import Escapes, unescape, fix_unicode
+
+from malibu.database.dbmapper import DBMapper
+from malibu.util.log import LoggingDriver
+
 from cStringIO import StringIO
 from contextlib import closing
-from ashiema import Plugin, Events, util
-from ashiema.util import Escapes, unescape, fix_unicode
-from ashiema.Plugin import Plugin
-from ashiema.PluginLoader import PluginLoader
-from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
 
 HTTPRequestHandler = object
+
 
 class Base64EncodedStream(object):
 
     def __init__(self):
 
         self.__data = ""
-    
+
     def write(self, data):
 
         self.__data += data
-    
+
     def encode(self):
 
         return self.__data.encode('base64')
-    
+
     def close(self):
 
         del self.__data, self
+
 
 class QRGenerator(Plugin):
 
@@ -40,7 +49,7 @@ class QRGenerator(Plugin):
         self.get_event("MessageEvent").register(self.handler)
         self.get_event("PluginsLoadedEvent").register(self.__load_identification)
         self.get_event("HTTPServerHandlerRegistrationReady").register(self.__http_server_ready)
-        
+
         self.__load_codes__()
 
     def __deinit__(self):
@@ -48,15 +57,15 @@ class QRGenerator(Plugin):
         self.get_event("MessageEvent").deregister(self.handler)
         self.get_event("PluginsLoadedEvent").deregister(self.__load_identification)
         self.get_event("HTTPServerHandlerRegistrationReady").deregister(self.__http_server_ready)
-        
+
         self.__unload_codes__()
-    
+
     def __load_identification(self):
-    
+
         self.identification = self.get_plugin('IdentificationPlugin')
 
     def __load_codes__(self):
-    
+
         try:
             self.codes = shelve.open(self.get_path() + "codes.db", protocol = 0, writeback = True)
         except Exception as e:
@@ -64,7 +73,7 @@ class QRGenerator(Plugin):
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
 
     def __unload_codes__(self):
-    
+
         try:
             self.codes.sync()
             self.codes.close()
@@ -72,8 +81,9 @@ class QRGenerator(Plugin):
             [self.log_error(trace) for trace in traceback.format_exc(4).split('\n')]
 
     def __gen_identifier__(self, length = 8):
-    
-        return "".join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890') for n in xrange(length)])
+
+        return "".join([random.choice('abcdefghijklmnopqrstuvwxyz'
+               'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890') for n in xrange(length)])
 
     def __http_server_ready(self, data = None):
 
@@ -97,10 +107,14 @@ class QRGenerator(Plugin):
                     try:
                         rendered = StringIO()
                         templater = self.templating()
-                        with closing(shelve.open(self.plugin.get_path() + "codes.db", protocol = 0, writeback = True)) as codes:
+                        with closing(shelve.open(self.plugin.get_path() +
+                                                 "codes.db", protocol = 0,
+                                                 writeback = True)) as codes:
                             code = codes[request]
-                        with closing(open(self.plugin.get_path() + 'qrcode.thtml', 'r')) as template:
-                            try: start_response(self.response_codes['OK'], [('Content-Type', 'text/html')])
+                        with closing(open(self.plugin.get_path() +
+                                          'qrcode.thtml', 'r')) as template:
+                            try: start_response(self.response_codes['OK'],
+                                    [('Content-Type', 'text/html')])
                             except: pass
                             templater.update_globals({
                                 'path'      : environment.get('PATH_INFO', ''),
@@ -117,16 +131,16 @@ class QRGenerator(Plugin):
                         raise
                 except Exception as e:
                     raise
-        
+
         handler = HTTPQrCodeRequestHandler(self, path = "/", route = r"""qr/(.+)?$""")
         handler.register()
-    
+
     def __encode(self, input):
-    
+
         id = self.__gen_identifier__(length = 6)
         while id in self.codes:
             id = self.__gen_identifier__(length = 6)
-        
+
         qr = qrcode.QRCode(
             version             = 1,
             error_correction    = qrcode.constants.ERROR_CORRECT_L,
@@ -134,17 +148,17 @@ class QRGenerator(Plugin):
             border              = 2)
         qr.add_data(input)
         qr.make(fit = True)
-        
+
         imgdata = qr.make_image()
         stream = Base64EncodedStream()
         imgdata.save(stream)
-        
+
         data = stream.encode()
         stream.close()
-        
+
         self.codes.update({id: data})
         self.codes.sync()
-        
+
         return id
 
     def handler(self, data):
@@ -162,7 +176,7 @@ class QRGenerator(Plugin):
             data.origin.notice("%s[QRGenerator]: %sEncoding..." % (Escapes.LIGHT_BLUE, Escapes.GREEN))
             qrid = self.__encode(input)
             data.origin.notice("%s[QRGenerator]: %s/qr/%s" % (Escapes.LIGHT_BLUE, self.get_plugin('HTTPServer').get_base_url(), qrid))
-            
+
 
 __data__ = {
     'name'      : 'QRGenerator',

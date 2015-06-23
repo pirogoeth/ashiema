@@ -1,22 +1,26 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema
-from ashiema import Plugin, Events, util
-from ashiema.util import Escapes
-from ashiema.Plugin import Plugin
-from ashiema.HelpFactory import Contexts, Filters, HelpFactory
-from ashiema.HelpFactory import CONTEXT, PARAMS, DESC, NAME, ALIASES
+import ashiema, datetime, malibu, os, traceback
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, Filters, HelpFactory
+from ashiema.api.help import CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.plugin.mdbm import MDBManager
+from ashiema.util import md5, Escapes
+
+from malibu.database.dbmapper import DBMapper
+from malibu.util.log import LoggingDriver
+
 
 class HelpFactoryInterface(Plugin):
 
     def __init__(self):
         
-        Plugin.__init__(self, needs_dir = False)
+        Plugin.__init__(self, needs_dir = False, needs_comm_pipe = False)
         
         self.helpfactory = HelpFactory.get_instance()
         

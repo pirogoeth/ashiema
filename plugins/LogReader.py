@@ -1,19 +1,19 @@
-#!/usr/bin/env bash
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, errno, time, logging, shelve, traceback
-from ashiema import Plugin, Events, Structures
-from ashiema.util import Escapes, unescape
-from ashiema.Events import Event
-from ashiema.Plugin import Plugin
-from ashiema.PluginLoader import PluginLoader
-from ashiema.HelpFactory import Contexts, CONTEXT, PARAMS, DESC, ALIASES
-from ashiema.Structures import Channel
+import ashiema, datetime, malibu, os, sys, traceback
+import errno, multiprocessing, shelve
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.irc.structures import Channel
+from ashiema.util import md5, Escapes, unescape
+
 from multiprocessing import Process
+
 
 class LogReader(Plugin):
 
@@ -59,7 +59,7 @@ class LogReader(Plugin):
             self.filters.update(self.shelf)
         except Exception as e:
             self.filters = None
-            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(4).split('\n')]
+            [LoggingDriver.find_logger().error(trace) for trace in traceback.format_exc(4).split('\n')]
     
     def __unload_filters__(self):
     

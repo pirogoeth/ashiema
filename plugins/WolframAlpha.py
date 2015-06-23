@@ -1,23 +1,23 @@
-#!/usr/bin/env python
-# -*- coding: latin-1 -*-
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, logging, ashiema, sys, traceback, time, malibu
+import ashiema, datetime, malibu, os, sys, time, traceback
 import xml.etree.cElementTree as xtree
-from ashiema import Plugin, Events, util
-from ashiema.util import Escapes
-from ashiema.Plugin import Plugin
-from ashiema.PluginLoader import PluginLoader
-from ashiema.HelpFactory import Contexts
-from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
-from malibu.text.tabletable import TextTable
-from urllib import urlopen, urlencode
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.plugin.mdbm import MDBManager
+from ashiema.util import md5, Escapes
+
 from contextlib import closing
 from datetime import timedelta
+from malibu.database.dbmapper import DBMapper
+from malibu.text.tabletable import TextTable
+from malibu.util.log import LoggingDriver
+
 
 class WolframAlpha(Plugin):
 
@@ -155,7 +155,7 @@ class WolframAlpha(Plugin):
                         data.target.privmsg("    ")
                 except (UnicodeEncodeError, UnicodeDecodeError, LookupError) as e:
                     data.target.privmsg(" - %s%sCould not decode results.%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL))
-                    [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+                    [self.logger.error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
                     return
             elif not have_results:
                 if len(response) == 0:
@@ -164,11 +164,11 @@ class WolframAlpha(Plugin):
                     data.target.privmsg(" - %s%sNo results found, try a different keyword.%s%s%s%s" % (Escapes.BOLD, Escapes.RED, Escapes.NL, Escapes.BOLD, Escapes.RED, response))
         except (TypeError, AttributeError, IOError) as er:
             # a wild exception appears.
-            [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+            [self.logger.error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
             return
         except (IndexError) as e:
             data.target.privmsg("%s[Wolfram|Alpha]: %sError parsing results." % (Escapes.LIGHT_BLUE, Escapes.BOLD))
-            [logging.getLogger("ashiema").error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
+            [self.logger.error("%s" % (tb)) for tb in traceback.format_exc(4).split('\n')]
             return
         except: raise
 

@@ -1,25 +1,27 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import os, sys, re, cgi, wsgiref, errno, time, logging, mimetypes, datetime, pprint, StringIO
-from ashiema import Plugin, Events, util
-from ashiema.util import Escapes, unescape, fork
-from ashiema.Events import Event
-from ashiema.Plugin import Plugin
-from ashiema.HelpFactory import Contexts
-from ashiema.HelpFactory import CONTEXT, DESC, PARAMS, ALIASES
-from contextlib import closing
+import ashiema, datetime, malibu, os, re, sys, traceback
+import cgi, datetime, errno, mimetypes, pprint, StringIO, time, wsgiref
+
+from ashiema.api.events import Event
+from ashiema.api.help import Contexts, CONTEXT, DESC, PARAMS, ALIASES
+from ashiema.api.plugin import Plugin
+from ashiema.plugin.mdbm import MDBManager
+from ashiema.util import md5, Escapes
+
 from cgi import parse_qs, escape
+from contextlib import closing
 from datetime import datetime
+from malibu.util.log import LoggingDriver
+from multiprocessing import Process, Manager
+from StringIO import StringIO
 from sys import exc_info
 from traceback import format_tb
-from StringIO import StringIO
-from multiprocessing import Process, Manager
 from wsgiref.simple_server import make_server
+
 
 class HTTPServer(Plugin):
 
@@ -154,7 +156,7 @@ class HTTPServer(Plugin):
                         self.__server.server_close()
                         self.__server.socket.close()
                         return
-                logging.getLogger('ashiema').info('HTTPServer no longer active.')
+                LoggingDriver.find_logger().info('HTTPServer no longer active.')
                 self.__server.server_close()
                 self.__server.socket.close()
 
@@ -558,7 +560,7 @@ class Templating(object):
             if match:
                 stmt = match.group(1)
                 if self.options()['debugging']:
-                    logging.getLogger('ashiema').debug("[Templating] matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char'])))
+                    LoggingDriver.find_logger().debug("[Templating] matched: [" + stmt + "] from line: {" + line + "}, indent size: " + str(line.index(self.options()['block_char'])))
                 eind_size = line.index(self.options()['block_char'])
                 eind_size += self.options()['block_indent_size']
                 search = pos + 1
@@ -574,7 +576,7 @@ class Templating(object):
                             break
                 stmt = self.preprocessor(stmt, 'exec')
                 if self.options()['debugging']:
-                    logging.getLogger('ashiema').debug("[Templating] executing statement: [" + stmt + "]")
+                    LoggingDriver.find_logger().debug("[Templating] executing statement: [" + stmt + "]")
                 if search - (pos + 1) == 0:
                     stmt = '%s' % stmt
                 else:

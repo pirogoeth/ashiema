@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
@@ -12,7 +10,7 @@ ALIASES = "aliases"
 NAME = "name"
 
 class Contexts(object):
-    
+
     PUBLIC  = "public"
     PRIVATE = "private"
     BOTH = "both"
@@ -25,14 +23,14 @@ class Filters(object):
             return True
         else:
             return False
-    
+
     def _private(entry):
 
         if entry[CONTEXT] is Contexts.PRIVATE:
             return True
         else:
             return False
-    
+
     def _both(entry):
 
         if entry[CONTEXT] is Contexts.BOTH:
@@ -51,26 +49,26 @@ class HelpFactory(object):
 
     @staticmethod
     def get_instance():
-        
+
         if HelpFactory.__instance is None:
             return HelpFactory()
         else:
             return HelpFactory.__instance
 
     def __init__(self):
-    
+
         HelpFactory.__instance = self
 
         self._help = {}
-    
+
     def register(self, plugin, help):
 
         self._help[plugin] = help
-    
+
     def deregister(self, plugin):
 
         del self._help[plugin]
-    
+
     def get_plugin_help(self, plugin):
 
         if not self._help.__contains__(plugin):
@@ -79,16 +77,16 @@ class HelpFactory(object):
         for key, entry in self._help[plugin].iteritems():
             entry.update({NAME : key})
             yield entry
-    
+
     def get_help(self, filter_func = None):
 
         results = []
-        
+
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
                 entry.update({NAME : key})
                 results.append(entry)
-        
+
         for entry in filter(filter_func, results):
             yield entry
 
@@ -115,15 +113,15 @@ class HelpFactory(object):
 
         for entry in filter(Filters.PRIVATE, results):
             yield entry
-    
+
     def get_dual_help(self):
 
         results = []
-        
+
         for plugin in self._help.keys():
             for key, entry in self._help[plugin].iteritems():
                 entry.update({NAME : key})
                 results.append(entry)
-        
+
         for entry in filter(Filters.BOTH, results):
             yield entry
