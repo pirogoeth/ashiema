@@ -1,32 +1,31 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import socket, select, ssl, logging, time, signal, sys, collections, multiprocessing, re, logging, traceback, inspect, malibu
-import Logger, EventHandler, Scheduler, Structures, PluginLoader
-from PluginLoader import PluginLoader
-from util import get_caller
+import ashiema, collections, inspect, malibu, multiprocessing, select, signal
+import socket, ssl, sys, time, traceback
+
+from ashiema.irc.eventhandler import EventHandler
+from ashiema.irc.token import Token
+from ashiema.plugin.loader import PluginLoader
+from ashiema.util import get_caller
+
 from malibu.config.configuration import Configuration
+from malibu.util.log import LoggingDriver
 from malibu.util.scheduler import Scheduler
 
-""" module:: Connection
-    :platform: Unix, Windows, Mac OS X
-    :synopsis: Contains Connection and Tokener (line tokenizing) classes. """
 
 class Connection(object):
-    """ py:class:: Connection()
-
-        Manage the connection to a server and run the main parsing/event loop. """
+    """ Manage the connection to a server and run the main parsing/event loop.
+    """
 
     __instance = None
 
     @staticmethod
     def get_instance():
         """ py:staticmethod:: get_instance()
-            
+
             :returns: The Connection instance, if it exists, or a new Connection instance.
             :rtype: Connection """
 
@@ -37,11 +36,11 @@ class Connection(object):
 
     def __init__(self):
         """ py:function:: __init__(self)
-        
+
             Sets up the socket, send queue, communications pipe, and scheduler. """
 
         Connection.__instance = self
-    
+
         self._socket = None
         self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
         self.log = logging.getLogger('ashiema')
@@ -49,12 +48,12 @@ class Connection(object):
         self._pqueue, self.__pq_reasm = collections.deque(), None
         self._comm_pipe_recv, self._comm_pipe_send = multiprocessing.Pipe(False)
         self._scheduler = Scheduler()
-   
-    def setup_info(self, nick = '', ident = '', real = ''):
-        """ py:function:: setup_info(self[, nick = ''[, ident = ''[, real = '']]])
-        
+
+    def setup_info(self, nick, ident, real = ''):
+        """ py:function:: setup_info(self[, nick[, ident[, real = '']]])
+
             Sets up the data that is necessary for connecting to a server.
-        
+
             :param nick: The nickname to connect with.
             :type nick: str
             :param ident: The ident string to connect with.
@@ -63,12 +62,12 @@ class Connection(object):
             :type real: str
             :returns: current Connection instance for chaining.
             :rtype: Connection """
-        
+
         self.nick = nick
         self.ident = ident
         self.real = real
         self._setupdone = True
-    
+
         return self
 
     def set_debug(self, debug = True):
@@ -80,27 +79,27 @@ class Connection(object):
             :type debug: bool
             :returns: current Connection instance for chaining.
             :rtype: Connection """
-        
+
         self.debug = debug
-        
+
         return self
-    
+
     def shutdown(self):
         """ py:function:: shutdown(self)
 
             Deinitializes plugins and terminates the parsing/event loop. """
-        
+
         # unload plugins
         PluginLoader.get_instance().unload()
         # change the value that controls the connection loop
         self._connected = False
-        
+
     def connect(self, address = '', inettype = 4, port = '', _ssl = None, password = None):
         """ py:function:: connect(self[, address = ''[, port = ''[, _ssl = None[, password = None]]]])
 
             Checks if the connection socket should be ssl wrapped and wraps it if so, and connects
             the socket to the target server.
-            
+
             :param address: Address of the server to connect to.
             :type address: str
             :param inettype: Inet socket type.
@@ -113,7 +112,7 @@ class Connection(object):
             :type password: str
             :returns: current Connection instance for chaining.
             :rtype: Connection """
-            
+
         if inettype == 4:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         elif inettype == 6:
@@ -137,58 +136,58 @@ class Connection(object):
         try: self.connection.connect((address, int(port)))
         except: raise
         self._connected = True
-        
+
         return self
-    
+
     def send_registration(self):
         """ py:function:: send_registration(self)
 
             Sends registration commands in the following order.
-        
+
               PASS :<password> (if a password is set/provided)
               NICK <nick>
               CAP LS
               USER <nick> +iw <unused> :<realname>
-            
+
             Sends the password and registration information to the server. """
 
         if not self._connected: return
         if self._registered: return
 
         if not self._registered:  # we probably don't need this any longer...
-            if self._passrequired: 
+            if self._passrequired:
                 self.send("PASS :%s" % (self._password))
                 self._password = None
             self.send("NICK %s" % (self.nick))
             self.send("CAP LS")
             self.send("USER %s %s * :%s" % (self.nick, self.ident, self.real))
-            user = Structures.User(nick = self.nick, ident = self.ident)
+            user = ashiema.irc.structures.User(nick = self.nick, ident = self.ident)
             user.update_gecos(self.real)
             self._registered = True
-    
+
     def send(self, *lines):
         """ py:function:: send(self, *lines)
-            
+
             Encodes given data in UTF-8 format, then adds it to the send queue.
-            
+
             :param lines: Lines that should be appended to the send queue.
             :type lines: list of strings """
-        
+
         if not self._connected: return
 
         for line in lines:
             try: line = line.encode("utf-8", "ignore")
             except: pass
             self._queue.append(line + '\r\n')
-    
+
     def _raw_send(self, data, override = False):
         """ py:function:: _raw_send(self, data)
-        
+
             Verifies data has the proper line ending and sends it through the socket.
-            
+
             :param data: Data to send to the server.
             :type data: str """
-        
+
         if not self._connected: return
 
         if data.strip() == '' and not override:
@@ -198,40 +197,40 @@ class Connection(object):
             data = data + '\r\n'
 
         self.connection.send(data)
-    
+
     def get_scheduler(self):
         """ py:function:: get_scheduler(self)
-            
+
             Returns the scheduler instance.
-            
-            :returns: Current scheduler instance. 
+
+            :returns: Current scheduler instance.
             :rtype: Scheduler """
-        
+
         return self._scheduler
-    
+
     def get_send_pipe(self):
         """ py:function:: get_send_pipe(self)
-        
+
             Returns the sending side of the multiprocessing.Pipe connection for subprocesses.
-            
+
             :returns: Sending side of the multiprocessing.Pipe connection.
             :rtype: multiprocessing.Connection """
-        
-        
+
+
         self.log.debug("Dispatching comm. pipe to %s" % (get_caller()))
 
         return self._comm_pipe_send
-   
+
     def run(self):
         """ py:function:: run(self)
-            
+
             Runs the parsing/event loop.
-            
+
             Handles the first message off the top of the send queue and handles what ever data is waiting
             in the subprocess pipe. """
-        
+
         if not self._connected: return
-        
+
         while self._connected is True:
             try:
                 time.sleep(0.001)
@@ -268,27 +267,27 @@ class Connection(object):
         self.connection.close()
         self._socket.close()
         exit()
-    
+
     def parse(self, data):
         """ py:function:: parse(self, data)
 
             Processes a chunk of data by splitting the chunk at each '\r\n', then tokenizes each line, and
             processes each token.
-            
+
             :param data: Chunk of data to be parsed.
             :type data: str """
-        
+
         self._pqueue.extend(data.split('\r\n'))
-        
+
         _reasm = None
-        
+
         if self.__pq_reasm:
             _reasm = self.__pq_reasm
             self.__pq_reasm = None
-        
+
         if not data.endswith('\r\n'):
             self.__pq_reasm = self._pqueue[len(self._pqueue) - 1]
-        
+
         while (len(self._pqueue) > 0):
             line = self._pqueue.popleft()
             if self.__pq_reasm and len(self._pqueue) == 0:
@@ -296,108 +295,6 @@ class Connection(object):
             if _reasm:
                 line = _reasm + line
                 _reasm = None
-            line = Tokener(line)
-            Tokener.process_events(line)
-        
-class Tokener(object):
-    """ py:class:: Tokener(data)
-    
-        Uses a regex to split up a line and turn each matched group (Origin, Type, Target, Message)
-        into a Structure that makes usage, responding, and formatting much easier. """
-
-    @staticmethod
-    def process_events(data):
-        """ py:staticmethod:: process_events(data)
-            
-            Passes +data+ to the EventHandler's event mapper for processing.
-            
-            :param data: Line to be processed.
-            :type data: Tokener instance """
-        
-        EventHandler.EventHandler.get_instance().map_events(data)
-
-    def __init__(self, data):
-        """ py:function:: __init__(self, data)
-            
-            Tokenizes +data+ according to a regex and matches each group with the proper Structure based on content.
-            
-            :param data: Data to tokenize.
-            :type data: str """
-
-        self._raw = data
-
-        self.connection = Connection.get_instance()
-        self.eventhandler = EventHandler.EventHandler.get_instance()
-        # this regular expression splits an IRC line up into four parts:
-        # ORIGIN, TYPE, TARGET, MESSAGE
-        proto_regex = r"^(?:\:([^\s]+)\s)?([A-Za-z0-9]+)\s(?:([^\s\:]+)\s)?(?:\:?(.*))?$"
-        user_regex = r"([\w\d\-_]+\![~\w\d\-_]+\@[\w\d\-_.]+)"
-        # a regular expression to match and dissect IRC protocol messages
-        # this is around 60% faster than not using a RE
-        proto_p = re.compile(proto_regex, re.VERBOSE)
-        user_p = re.compile(user_regex, re.VERBOSE)
-        try:
-            self.origin, self.type, self.target, self.message = (None, None, None, None)
-            self._origin, self._type, self._target, self._message = proto_p.match(data).groups()
-            # take each token and initialise the appropriate structure.
-            try:
-                if len(user_p.findall(self._origin)) == 0:
-                    self.origin = Structures.Origin(self._origin) if self._origin is not None else None
-                else:
-                    self.origin = Structures.User.find_userstring(self._origin)
-                    if not self.origin:
-                        self.origin = Structures.User(userstring = self._origin)
-            except: self.origin = None
-            self.type = Structures.Type(self._type) if self._type is not None else None
-            if self._target is None:
-                pass
-            elif self._target.startswith('#', 0, 1) is True:
-                self.target = Structures.Channel(self._target)
-            else: 
-                if self._target == '*':
-                    self.target = self._target
-                else:
-                    try: self.target = Structures.User.find_user(nick = self._target)
-                    except:
-                        self.target = Structures.User(nick = self._target)
-            self.message = Structures.Message(self._message)
-        except (AttributeError):
-            pass
-        try:
-            if logging.getLogger('ashiema').getEffectiveLevel() is logging.DEBUG and self.connection.debug is True:
-                if self.type and self.message:
-                    logging.getLogger('ashiema').debug("%s %s %s %s" % (str(self.origin), str(self.type), str(self.target), str(self.message)))
-        except:
-            [logging.getLogger('ashiema').error(trace) for trace in traceback.format_exc(5).split('\n')]
-            pass
-    
-    def get_raw(self):
-        """ py:function:: get_raw(self)
-            
-            Returns the raw, untokenized data that was received from the server.
-            
-            :returns: Untokenized data.
-            :rtype: str """
-
-        return self._raw
-    
-    def respond_to_user(self, message, prefer_notice = True):
-        """ py:function:: respond_to_user(self, message[, prefer_notice = True])
-        
-            Determines the best way to respond to the user and sends +message+ that way.
-            If +prefer_notice+ is true, the message will be sent as a NOTICE instead of a 
-            PRIVMSG.
-            
-            :param message: Message to send to the user.
-            :type message: str
-            :param prefer_notice: Whether to use NOTICE or PRIVMSG.
-            :type prefer_notice: bool """
-
-        if self.target.is_self():
-            if prefer_notice:
-                self.origin.notice(message)
-            else:
-                self.origin.message(message)
-        else:
-            self.target.message(message)
+            line = Token(self, line)
+            Token.process_events(line)
 

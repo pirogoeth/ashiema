@@ -1,33 +1,31 @@
-#!/usr/bin/env python
-
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
 import ashiema, datetime, malibu, os, re, sys, time
 
-import Connection, EventHandler, Structures
-from Connection import Connection
-from EventHandler import EventHandler
-from PluginLoader import PluginLoader
-from Structures import Channel, User
+from ashiema.irc.connection import Connection
+from ashiema.irc.eventhandler import EventHandler
+from ashiema.irc.structures import Channel, User
+from ashiema.plugin.loader import PluginLoader
 
 from malibu.config.configuration import Configuration
 from malibu.util.log import LoggingDriver
+
 
 class Event(object):
     """ This is the base event class that should be subclassed by all other events
         that are being implemented. We provide a small framework to easily handle
         registration and deregistration of handlers. """
-    
+
     def __init__(self, event_name = "Event"):
 
         self.eventhandler = EventHandler.get_instance()
         self.connection = Connection.get_instance()
         self.config = ashiema.config
 
-        self.logger = LoggingDriver.get_logger()
+        self.logger = LoggingDriver.find_logger()
 
         self.name = event_name
         self.callbacks = {}
@@ -36,7 +34,7 @@ class Event(object):
 
         self.__cancellable = True
         self.__cancelled = False
-        
+
     def __repr__(self):
 
         return "<Event(%s)>" % (type(self).__name__)
@@ -51,17 +49,17 @@ class Event(object):
 
     def __get_connection__(self):
         """ returns the connection instance """
-        
+
         return self.connection
 
     def __get_eventhandler__(self):
         """ returns the event handler """
-        
+
         return self.eventhandler
-        
+
     def __get_name__(self):
         """ returns the identifiable name of the event. """
-        
+
         return self.name
 
     def register(self, function):
@@ -74,60 +72,60 @@ class Event(object):
 
     def log_debug(self, *args):
         """ send data to the logger with level `debug`. """
-        
+
         [self.logger.debug('[' + self.name + '] ' + message) for message in args]
 
     def log_info(self, *args):
         """ send data to the logger with level `info`. """
-        
+
         [self.logger.info('[' + self.name + '] ' + message) for message in args]
 
     def log_warning(self, *args):
         """ send data to the logger with level `warning`. """
-        
+
         [self.logger.warning('[' + self.name + '] ' + message) for message in args]
 
     def log_error(self, *args):
         """ send data to the logger with level `error`. """
-        
+
         [self.logger.error('[' + self.name + '] ' + message) for message in args]
 
     def log_critical(self, *args):
         """ send data to the logger with level `critical`. """
-        
+
         [self.logger.critical('[' + self.name + '] ' + message) for message in args]
-    
+
     def is_cancelled(self):
         """ returns whether or not the event has been cancelled """
-        
+
         return self.__cancelled
-    
+
     def is_cancellable(self):
         """ returns whether or not the event can be cancelled """
-        
+
         return self.__cancellable
-    
+
     def cancel(self, b):
-        """ sets whether or not to cancel the function, 
+        """ sets whether or not to cancel the function,
             returns the new cancellation status """
-        
+
         if self.__cancellable:
             self.__cancelled = b
             return b
         elif not self.__cancellable:
             return False
-    
+
     def match(self, data):
         """ this is a method that will provide the hooking system a mechanism
             to detect if a certain data value triggers a match on a registered
             event or not to help processing preservation. """
-        
+
         pass
 
     def run(self, data):
         """ this provides a method to run when a line triggers an event.
             it should be overloaded. """
-        
+
         for callback in self.callbacks.values():
             if self.is_cancelled():
                 break
@@ -141,7 +139,7 @@ class PluginsLoadedEvent(Event):
 
         Event.__init__(self, "PluginsLoadedEvent")
         self.__register__()
-        
+
         self.__cancellable = False
 
     def match(self, data = None):
@@ -150,7 +148,7 @@ class PluginsLoadedEvent(Event):
             return True
         else:
             return False
-    
+
     def run(self, data = None):
 
         for callback in self.callbacks.values():
@@ -158,25 +156,25 @@ class PluginsLoadedEvent(Event):
 
 class IRCConnectionReadyEvent(Event):
     """ Represents completion of the bot's handshake with the server. """
-    
+
     def __init__(self):
-    
+
         Event.__init__(self, "IRCConnectionReadyEvent")
         self.__register__()
-        
+
         self.__cancellable = False
-        
+
     def match(self, data = None):
-    
+
         if (str(data.target) == '*' or data.target == None) and str(data.message).lstrip().startswith("***") and not data.connection._registered:
             return True
         else:
             return False
-     
+
     def run(self, data = None):
-     
+
         data.connection.send_registration()
-        
+
         if self.callbacks is not None:
             for function in self.callbacks.values():
                 function(data)
@@ -188,16 +186,16 @@ class ModeChangeEvent(Event):
         Event.__init__(self, "ModeChangeEvent")
         self.__register__()
         self.commands = ['MODE', 'OMODE', 'UMODE']
-    
+
         self.__cancellable = False
-    
+
     def match(self, data = None):
 
         if self.commands.__contains__(str(data.type)) and data.target == data.connection.nick:
             return True
         else:
             return False
-    
+
     def run(self, data):
 
         if self.callbacks is not None:
@@ -210,16 +208,16 @@ class ErrorEvent(Event):
 
         Event.__init__(self, "ErrorEvent")
         self.__register__()
-    
+
         self.__cancellable = False
-    
+
     def match(self, data):
 
         if (str(data.type) == "ERROR" or str(data.type) == "KILL") and data.message:
             return True
         else:
             return False
-    
+
     def run(self, data):
 
         self.log_critical('<- %s: %s' % (str(data.type), data.message))
@@ -259,19 +257,19 @@ class CAPEvent(Event):
     capabilities = []
 
     def __init__(self):
-    
+
         Event.__init__(self, "CAPEvent")
         self.__register__()
         self.commands = ['CAP']
-        
+
         self.__cancellable = False
-        
+
         self.connection = Connection.get_instance()
         self.config = self.config.get_section('ashiema')
         self.extensions = self.config.get_list('capextensions')
 
     def match(self, data):
-    
+
         if self.commands.__contains__(str(data.type)):
             return True
 
@@ -279,9 +277,9 @@ class CAPEvent(Event):
 
         subcommand = data.message[0]
         arguments = data.message[1:]
-        
+
         arguments[0] = arguments[0][1:]
-        
+
         if len(self.extensions) == 0:
             self.log_info("No capabilities specified in configuration; skipping CAP negotiation.")
             self.connection.send("CAP END")
@@ -302,20 +300,20 @@ class CAPEvent(Event):
             self.connection.send("CAP END")
         elif subcommand == 'NAK':
             self.log_error("Server refused extensions: %s" % (arguments))
-            
+
 class NumericEvent(Event):
 
     def __init__(self):
 
         Event.__init__(self, "NumericEvent")
         self.__register__()
-        
+
         self.__cancellable = False
-        
+
         self.connection = Connection.get_instance()
         self.config = self.config.get_section('ashiema')
         self.__conn_hooks__ = self.config.get_string('onconnect', '').split(',')
-    
+
     def match(self, data):
 
         try:
@@ -375,7 +373,7 @@ class NumericEvent(Event):
             # ERR_NICKNAMEINUSE # XXX - Quit just exiting. Implement a nick change/tracking mechanism.
             self.log_error('<- %s, exiting.' % (data.message))
             self.connection.shutdown()
-        
+
         if self.callbacks is not None:
             for function in self.callbacks.values():
                 function(data)
@@ -394,7 +392,7 @@ class MessageEvent(Event):
 
         if self.commands.__contains__(str(data.type)) and str(data.target) != data.connection.nick:
             return True
-    
+
     def run(self, data):
 
         if self.callbacks is not None:
@@ -404,21 +402,21 @@ class MessageEvent(Event):
 class AccountEvent(Event):
 
     def __init__(self):
-    
+
         Event.__init__(self, "AccountEvent")
         self.__register__()
-    
+
         self.__cancellable = False
-    
+
     def match(self, data):
-    
+
         if str(data.type) == 'ACCOUNT' and 'account-notify' in CAPEvent.capabilities:
             return True
         else:
             return False
-    
+
     def run(self, data):
-    
+
         if data.message.to_s() == "*":
             self.log_debug("<- user %s has logged out of an account" % (data.origin.to_s()))
             data.origin.update_account(account = '*')
@@ -429,34 +427,34 @@ class AccountEvent(Event):
 class NickChangeEvent(Event):
 
     def __init__(self):
-    
+
         Event.__init__(self, "NickChangeEvent")
         self.__register__()
-    
+
         self.__cancellable = False
-    
+
     def match(self, data):
-    
+
         if str(data.type) == 'NICK':
             return True
         else:
             return False
-    
+
     def run(self, data):
-    
+
         self.log_info("<- user %s changed nick to %s" % (data.origin.to_s(), data.message.to_s()))
 
         data.origin.nick_change(data.message.to_s())
-        
+
 class UserJoinEvent(Event):
 
     def __init__(self):
 
         Event.__init__(self, "UserJoinEvent")
         self.__register__()
-    
+
         self.__cancellable = False
-    
+
     def match(self, data):
 
         if str(data.type) == 'JOIN':
@@ -465,7 +463,7 @@ class UserJoinEvent(Event):
             return False
 
     def run(self, data):
-    
+
         if 'account-notify' in CAPEvent.capabilities:
             self.log_debug("<- user %s (account %s) joined channel %s" % (data.origin.to_s(), data.message[0], data.target.to_s()))
             data.origin.update_account(account = data.message[0])
@@ -478,19 +476,19 @@ class UserPartEvent(Event):
 
         Event.__init__(self, "UserPartEvent")
         self.__register__()
-    
+
         self.__cancellable = False
-    
+
     def match(self, data):
 
         if str(data.type) == 'PART':
             return True
         else:
             return False
-    
+
     def run(self, data):
-    
-        if not data.target:    
+
+        if not data.target:
             self.log_debug("<- user %s parted channel %s" % (data.origin.to_s(), data.message.to_s()))
         else:
             self.log_debug("<- user %s parted channel %s: %s" % (data.origin.to_s(), data.target.to_s(), data.message.to_s()))
@@ -501,9 +499,9 @@ class UserQuitEvent(Event):
 
         Event.__init__(self, "UserQuitEvent")
         self.__register__()
-        
+
         self.__cancellable = False
-       
+
     def match(self, data):
 
         if str(data.type) == 'QUIT':
@@ -512,25 +510,25 @@ class UserQuitEvent(Event):
             return False
 
     def run(self, data):
-    
+
         self.log_debug("<- user %s has quit: %s" % (data.origin.to_s(), data.message.to_s()))
 
 class PingEvent(Event):
-   
+
     def __init__(self):
 
         Event.__init__(self, "PingEvent")
         self.__register__()
-        
+
         self.__cancellable = False
-   
+
     def match(self, data):
 
         if str(data.type) == 'PING':
             return True
         else:
             return False
-   
+
     def run(self, data):
 
         if data.message is None:
@@ -547,9 +545,9 @@ class CTCPEvent(Event):
 
         Event.__init__(self, "CTCPEvent")
         self.__register__()
-        
+
         self.__cancellable = False
-        
+
     def match(self, data):
 
         if str(data.type) == 'PRIVMSG' and data.target.is_self():

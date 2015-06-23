@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 # ashiema: a lightweight, modular IRC bot written in python.
-# Copyright (C) 2013 Shaun Johnson <pirogoeth@maio.me>
+# Copyright (C) 2013-2015 Sean Johnson <pirogoeth@maio.me>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without 
 # restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the 
@@ -13,16 +13,17 @@
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
 # WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import ashiema, logging, malibu, sys, traceback
+import ashiema, malibu, sys, traceback
 
-from ashiema import Events, util
-from ashiema.Connection import Connection
-from ashiema.EventHandler import EventHandler
-from ashiema.PluginLoader import PluginLoader
+from ashiema.api import events
+from ashiema.irc.connection import Connection
+from ashiema.irc.eventhandler import EventHandler
+from ashiema.plugin.loader import PluginLoader
 from ashiema.util import fork
 
 from malibu.config.configuration import Configuration, ConfigurationSection
-from malibu.util import log
+from malibu.util.log import LoggingDriver
+
 
 def ashiema_main(configuration):
     connection = Connection()
@@ -30,7 +31,7 @@ def ashiema_main(configuration):
     ashiema.config = configuration
     config = configuration.get_section('ashiema')
    
-    logger = log.LoggingDriver(config = configuration.get_section('logging'))
+    logger = LoggingDriver(config = configuration.get_section('logging'))
     
     connection.set_debug(config.get_bool('debug', False))
 
@@ -58,7 +59,7 @@ def ashiema_main(configuration):
             password = config.get_string('password', None)
         )
         EventHandler.get_instance()
-        Events.get_events()
+        events.get_events()
         PluginLoader.get_instance()
         connection.run()
     except (SystemExit, KeyboardInterrupt):
