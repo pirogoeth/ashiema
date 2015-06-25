@@ -3,7 +3,7 @@
 #
 # An extended version of the license is included with this software in `ashiema.py`.
 
-import ashiema, errno, malibu, multiprocessing, os, util
+import ashiema, errno, malibu, multiprocessing, os
 
 from ashiema.irc.connection import Connection
 from ashiema.irc.eventhandler import EventHandler

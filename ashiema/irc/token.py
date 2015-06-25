@@ -6,6 +6,7 @@
 import ashiema, collections, malibu, re, traceback
 
 from ashiema.irc.eventhandler import EventHandler
+from ashiema.irc.structures import *
 
 from malibu.util.log import LoggingDriver
 
@@ -22,6 +23,13 @@ class Token(object):
         """
 
         EventHandler.get_instance().map_events(data)
+
+    @staticmethod
+    def blank_token(connection):
+        """ Creates a "blank" token with the proper connection instance.
+        """
+
+        return Token(connection, "")
 
     def __init__(self, connection, data):
         """ Tokenizes +data+ according to a regex and matches each group with the proper structure based on content.
@@ -41,18 +49,23 @@ class Token(object):
         user_p = re.compile(user_regex, re.VERBOSE)
 
         try:
-            self.origin, self.type, self.target, self.message = (None, None, None, None)
+            self.origin = None
+            self.type = None
+            self.target = None
+            self.message = None
             self._origin, self._type, self._target, self._message = proto_p.match(data).groups()
-            # take each token and initialise the appropriate structure.
 
+            # take each token and initialise the appropriate structure.
             try:
-                if len(user_p.findall(self._origin)) == 0:
+                origins = user_p.findall(self._origin)
+                if not origins or len(origins) == 0:
                     self.origin = Origin(self, self._origin) if self._origin is not None else None
                 else:
                     self.origin = User.find_userstring(self._origin)
                     if not self.origin:
                         self.origin = User(self, userstring = self._origin)
-            except: self.origin = None
+            except:
+                self.origin = None
 
             self.type = Type(self, self._type) if self._type is not None else None
 

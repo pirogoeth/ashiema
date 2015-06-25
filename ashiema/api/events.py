@@ -333,7 +333,7 @@ class NumericEvent(Event):
             # RPL_WHOISUSER
             user = User.find_user(data.message[0])
             if user is None:
-                user = User(nick = data.message[0], ident = data.message[1], host = data.message[2])
+                user = User(data, nick = data.message[0], ident = data.message[1], host = data.message[2])
                 user.update_gecos(data.message[4])
         elif data.type.to_i() == 318:
             # RPL_ENDOFWHOIS
@@ -565,7 +565,8 @@ class CTCPEvent(Event):
     def run(self, data):
 
         if data.message == (0, "\x01VERSION\x01"):
-            data.origin.notice("VERSION ashiema IRC bot [%s] - http://github.com/pirogoeth/ashiema" % (ashiema.version))
+            data.origin.notice("VERSION ashiema IRC bot [%s] - "
+                "http://github.com/pirogoeth/ashiema" % (ashiema.__version__))
         elif data.message == (0, "\x01TIME\x01"):
             data.origin.notice("TIME %s" % (datetime.datetime.now().strftime("%a %d %b %Y %I:%M:%S %p %Z")))
         elif data.message == (0, "\x01PING\x01"):

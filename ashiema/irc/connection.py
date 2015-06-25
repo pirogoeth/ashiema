@@ -6,6 +6,7 @@
 import ashiema, collections, inspect, malibu, multiprocessing, select, signal
 import socket, ssl, sys, time, traceback
 
+from ashiema.irc import structures
 from ashiema.irc.eventhandler import EventHandler
 from ashiema.irc.token import Token
 from ashiema.plugin.loader import PluginLoader
@@ -41,12 +42,21 @@ class Connection(object):
 
         Connection.__instance = self
 
+        self.log = LoggingDriver.find_logger()
+        # Fields used for upstream processing.
         self._socket = None
-        self._setupdone, self._connected, self._registered, self._passrequired, self.debug = (False, False, False, False, False)
-        self.log = logging.getLogger('ashiema')
         self._queue = collections.deque()
-        self._pqueue, self.__pq_reasm = collections.deque(), None
+        self._pqueue = collections.deque()
+        self.__pq_reasm = None
+        # Fields for tracking connection state.
+        self._setupdone = False
+        self._connected = False
+        self._registered = False
+        self._passrequired = False
+        self.debug = False
+        # Inter-process plugin communication pipe
         self._comm_pipe_recv, self._comm_pipe_send = multiprocessing.Pipe(False)
+        # Scheduler, event ticker
         self._scheduler = Scheduler()
 
     def setup_info(self, nick, ident, real = ''):
@@ -131,7 +141,8 @@ class Connection(object):
             self.connection = self._socket
             self.log.warning("Connection type not specified, assuming plain.")
         if password is not None or password is not '':
-            self._passrequired, self._password = (True, password)
+            self._passrequired = True
+            self._password = password
 
         try: self.connection.connect((address, int(port)))
         except: raise
@@ -161,7 +172,11 @@ class Connection(object):
             self.send("NICK %s" % (self.nick))
             self.send("CAP LS")
             self.send("USER %s %s * :%s" % (self.nick, self.ident, self.real))
-            user = ashiema.irc.structures.User(nick = self.nick, ident = self.ident)
+            fake_token = Token.blank_token(self)
+            user = structures.User(
+                fake_token,
+                nick = self.nick,
+                ident = self.ident)
             user.update_gecos(self.real)
             self._registered = True
 
@@ -192,6 +207,9 @@ class Connection(object):
 
         if data.strip() == '' and not override:
             return
+
+        if self.debug:
+            self.log.debug("SEND: %s", data)
 
         if not data.endswith('\r\n'):
             data = data + '\r\n'
@@ -236,7 +254,10 @@ class Connection(object):
                 time.sleep(0.001)
                 r, w, e = select.select([self.connection], [], [self.connection], .025)
                 if self.connection in r:
-                    self.parse(self.connection.recv(8192))
+                    data = self.connection.recv(8192)
+                    if self.debug:
+                        self.log.debug("RECV: %s", data)
+                    self.parse(data)
                 if self.connection in e:
                     self._connected = False
                     self.log.critical("Error during poll; aborting!")

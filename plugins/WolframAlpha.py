@@ -15,7 +15,7 @@ from ashiema.util import md5, Escapes
 from contextlib import closing
 from datetime import timedelta
 from malibu.database.dbmapper import DBMapper
-from malibu.text.tabletable import TextTable
+from malibu.text.table import TextTable
 from malibu.util.log import LoggingDriver
 
 

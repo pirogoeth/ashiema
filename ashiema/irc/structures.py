@@ -49,7 +49,7 @@ class Origin(Structure):
 
         Structure.__init__(self, token)
 
-        self.connection = self.token.connection
+        self.connection = self._token.connection
         self.name = name
 
     def __repr__(self):
@@ -119,7 +119,7 @@ class Channel(Structure):
 
         Structure.__init__(self, token)
 
-        self.connection = self.token.connection
+        self.connection = self._token.connection
         self.name = channel
 
         self.users = {}
@@ -306,7 +306,9 @@ class User(Structure):
 
     @staticmethod
     def find_user(nick = None, ident = None, host = None):
-        """ This method uses User.find_users and performs a best-fit search on the result if more than one is returned. """
+        """ This method uses User.find_users and performs a best-fit search 
+            on the result if more than one is returned.
+        """
 
         result = User.find_users(nick, ident, host)
 
@@ -349,7 +351,7 @@ class User(Structure):
 
         Structure.__init__(self, token)
 
-        self.connection = self.token.connection
+        self.connection = self._token.connection
 
         if not userstring:
             self.nick = nick
