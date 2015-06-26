@@ -20,8 +20,6 @@ try:
     import megahal
     has_megahal = True
 except ImportError:
-    LoggingDriver.find_logger(name = "ashiema").error(
-            "You must install py-megahal to use this plugin.")
     has_megahal = False
 
 

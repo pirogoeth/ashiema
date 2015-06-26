@@ -15,8 +15,10 @@ from malibu.util.log import LoggingDriver
 class Plugin(object):
     """ this is the plugin implementation. """
 
-    def __init__(self, needs_dir = False, needs_comm_pipe = False, needs_event_pipe = False):
-        # you need to register events and commands and such right in here.
+    def __init__(self,
+                 needs_dir = False,
+                 needs_comm_pipe = False,
+                 needs_event_pipe = False):
 
         self.connection = Connection.get_instance()
         self.eventhandler = EventHandler.get_instance()
@@ -27,7 +29,7 @@ class Plugin(object):
 
         self.scheduler = self.connection.get_scheduler()
 
-        self.logger = LoggingDriver.find_logger()
+        self.logger = LoggingDriver.get_instance().get_logger(self.name)
 
         self.logger.debug("Initialising plugin: [" + self.name + "]")
 
